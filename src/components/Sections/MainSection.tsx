@@ -7,7 +7,7 @@ const MainSection = () => {
     <>
       <div
         id="playlist-container"
-        className="relative transition-all duration-1000 bg-green-600"
+        className="relative transition-all duration-1000 bg-pink-400"
       >
         {/* Page Header */}
 

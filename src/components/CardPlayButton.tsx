@@ -33,7 +33,7 @@ const CardPlayButton = ({ id, size = "small" }: CardPlayButtonProps) => {
     <>
       <button
         onClick={handleClick}
-        className="card-play-button rounded-full bg-green-500 p-4 mb-10 hover:scale-105 transition hover:bg-green-400"
+        className="card-play-button rounded-full bg-pink-200 p-4 mb-10 hover:scale-105 transition hover:bg-pink-500"
       >
         {isPlayingPlaylist ? <Pause className={iconClassName} /> : <Play className={iconClassName} />}
       </button>
