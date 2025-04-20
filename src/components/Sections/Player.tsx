@@ -36,7 +36,7 @@ const Player = () => {
 
   return (
     <>
-      <div className="flex flex-row justify-between w-full px-1 z-50">
+      <div className="flex flex-col sm:flex-row items-center justify-between w-full px-2 py-2 gap-2 sm:gap-0 z-50">
         <div className="w-[200px]">
           {currentMusic?.song && <CurrentSong {...currentMusic.song} />}
         </div>

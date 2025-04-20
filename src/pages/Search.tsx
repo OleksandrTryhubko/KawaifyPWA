@@ -23,7 +23,7 @@ const Search = () => {
           </div>
         </div>
 
-        <div className="absolute inset-0 bg-gradient-to-t from-zinc-900 via-zinc-900/80" />
+        <div className="absolute inset-0 bg-gradient-to-t from-zinc-900 via-purple-900/80" />
       </div>
     </>
   );

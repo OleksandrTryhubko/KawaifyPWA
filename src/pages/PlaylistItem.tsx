@@ -18,7 +18,7 @@ const PlaylistItem = () => {
       >
         {/* Page Header */}
 
-        <header className="flex flex-row gap-8 px-6 mt-12">
+        <header className="flex flex-col sm:flex-row gap-6 sm:gap-8 px-4 sm:px-6 mt-8 sm:mt-12 text-center sm:text-left items-center sm:items-start">
           <picture className="aspect-square w-52 h-52 flex-none">
             <img
               src={playlist?.cover}

@@ -7,6 +7,10 @@ declare module 'virtual:pwa-register' {
       onRegistered?: (registration: ServiceWorkerRegistration | undefined) => void
       onRegisterError?: (error: any) => void
     }
+declare module "*.png" {
+const src: string;
+    export default src;
+    }    
   
     export function registerSW(options?: RegisterSWOptions): (reloadPage?: boolean) => void
   }

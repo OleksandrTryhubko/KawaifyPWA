@@ -19,7 +19,7 @@ const PlayListItemCard = ({ playlist }: SideMenuCardProps) => {
 
         <Link
           to={`/playlist/${id}`}
-          className="playlist-item transition-all duration-300 flex relative p-2 overflow-hidden gap-2 pb-6 rounded-md hover:bg-zinc-800 shadow-lg hover:shadow-xl bg-zinc-500/30 w-44 flex-col"
+          className="playlist-item transition-all duration-300 flex relative p-2 overflow-hidden gap-2 pb-6 rounded-md hover:bg-zinc-800 shadow-lg hover:shadow-xl bg-zinc-500/30 w-full sm:w-44 flex-col"
         >
           <picture className="aspect-square w-full h-auto flex-none">
             <img

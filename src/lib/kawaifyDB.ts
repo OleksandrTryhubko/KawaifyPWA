@@ -1,24 +1,23 @@
-import Dexie, { Table } from 'dexie';
+import Dexie, { Table } from "dexie";
 
-export interface Track {
-  trackId: string;
+export interface FavoriteTrack {
+  id: string;
   title: string;
   artist: string;
-  coverUrl: string;
-  audioUrl: string;
-  source: 'jamendo' | 'local';
-  liked: boolean;
+  duration: number;
+  streamUrl: string;
+  image: string;
 }
 
-export class KawaifyDB extends Dexie {
-  tracks!: Table<Track, string>;
+class KawaisyDB extends Dexie {
+  favoriteTracks!: Table<FavoriteTrack, string>;
 
   constructor() {
-    super('kawaify');
+    super("KawaifyDB");
     this.version(1).stores({
-      tracks: 'trackId, title, artist, source, liked'
+      favoriteTracks: "id, title, artist", // індекси для швидкого пошуку
     });
   }
 }
 
-export const db = new KawaifyDB();
+export const db = new KawaisyDB();
