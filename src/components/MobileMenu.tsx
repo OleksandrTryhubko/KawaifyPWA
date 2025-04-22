@@ -1,6 +1,5 @@
 import { X } from "lucide-react";
 import SideMenuItem from "./SideMenuItem";
-import SideMenuCard from "./SideMenuCard";
 import kawaifyLogo from "../icons/kawaify-logo.png";
 
 interface MobileMenuProps {

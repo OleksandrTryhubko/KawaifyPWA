@@ -1,44 +1,34 @@
 import { Play } from "./Player/Play";
 import { Pause } from "./Player/Pause";
 import { usePlayerStore } from "../store/playerStore";
-import { allPlaylists, songs as allSongs } from "../lib/data";
 
-interface CardPlayButtonProps {
-  id?: string;
-  size?: string;
+interface SimplePlayButtonProps {
+  size?: "small" | "large";
+  onClickPlay: () => void;
 }
 
-const CardPlayButton = ({ id, size = "small" }: CardPlayButtonProps) => {
-  const { currentMusic, isPlaying, setIsPlaying, setCurrentMusic } =
-    usePlayerStore((state) => state);
-
-  const isPlayingPlaylist = isPlaying && currentMusic?.playlist?.id === id;
+const SimplePlayButton = ({ size = "small", onClickPlay }: SimplePlayButtonProps) => {
+  const { isPlaying, setIsPlaying } = usePlayerStore((state) => state);
 
   const handleClick = () => {
-    if (isPlayingPlaylist) {
+    if (isPlaying) {
       setIsPlaying(false);
-      return;
+    } else {
+      setIsPlaying(true);
+      onClickPlay();
     }
-
-    const playlist = allPlaylists.find((playlist) => playlist?.id === id);
-    const songs = allSongs.filter((song) => song?.albumId === playlist?.albumId);
-
-    setIsPlaying(true);
-    setCurrentMusic({ songs: songs as [], playlist, song: songs[0] });
   };
 
-  const iconClassName = size === "small" ? "w-4 h-4" : "w-5 h-5";
+  const iconClassName = size === "small" ? "w-4 h-4" : "w-6 h-6";
 
   return (
-    <>
-      <button
-        onClick={handleClick}
-        className="card-play-button rounded-full bg-pink-200 p-3 sm:p-4 mb-6 sm:mb-10 hover:scale-105 transition hover:bg-pink-500"
-      >
-        {isPlayingPlaylist ? <Pause className={iconClassName} /> : <Play className={iconClassName} />}
-      </button>
-    </>
+    <button
+      onClick={handleClick}
+      className="rounded-full bg-pink-200 p-3 sm:p-4 mb-6 sm:mb-10 hover:scale-105 transition hover:bg-pink-500"
+    >
+      {isPlaying ? <Pause className={iconClassName} /> : <Play className={iconClassName} />}
+    </button>
   );
 };
 
-export default CardPlayButton;
+export default SimplePlayButton;

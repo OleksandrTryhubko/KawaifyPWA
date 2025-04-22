@@ -1,13 +1,13 @@
 import "./App.css";
 import MainSection from "./components/Sections/MainSection";
 import AsideMenu from "./components/AsideMenu";
-import PlaylistItem from "./pages/PlaylistItem";
+import Player from "./components/Sections/Player";
+import MobileMenu from "./components/MobileMenu";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+import Profile from "./pages/profile";
 import { useState } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import MobileMenu from "./components/MobileMenu";
-import Player from "./components/Sections/Player";
-import Login from "./pages/Login";
-import { Register } from "./pages/Register";
 
 function App() {
   const [open, setOpen] = useState(false);
@@ -36,9 +36,9 @@ function App() {
 
           <Routes>
             <Route index element={<MainSection />} />
-            <Route path="/playlist/:id" element={<PlaylistItem />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/profile/:uid" element={<Profile />} />
           </Routes>
         </main>
       </div>
