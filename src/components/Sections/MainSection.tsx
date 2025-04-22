@@ -21,7 +21,7 @@ const MainSection = () => {
   const [tracks, setTracks] = useState<AudiusTrack[]>([]);
 
   useEffect(() => {
-    fetchAudiusTracks("lofi", 12).then((res) => setTracks(res));
+    fetchAudiusTracks("lofi", 48).then((res) => setTracks(res));
   }, []);
 
   return (

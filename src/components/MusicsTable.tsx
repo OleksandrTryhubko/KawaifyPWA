@@ -1,5 +1,5 @@
 import { IoTimeOutline } from "react-icons/io5";
-import { Song } from "../lib/data";
+import { Song } from "../lib/types";
 
 interface MusicsTableProps {
   songs: Song[];

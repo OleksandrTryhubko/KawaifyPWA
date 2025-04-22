@@ -1,6 +1,7 @@
+import { VscLibrary } from "react-icons/vsc";
 import { FiSearch } from "react-icons/fi";
 import { GrHomeRounded } from "react-icons/gr";
-import { VscLibrary } from "react-icons/vsc";
+import { FiLogIn, FiUserPlus } from "react-icons/fi";
 import { Link } from "react-router-dom";
 
 interface SideMenuProps {
@@ -10,9 +11,11 @@ interface SideMenuProps {
 
 const SideMenuItem = ({ href, text }: SideMenuProps) => {
   const linksMap: { [key: string]: JSX.Element } = {
-    Home: <GrHomeRounded size={24} />,
-    Search: <FiSearch size={24} />,
-    Library: <VscLibrary size={24} />,
+    Home: <GrHomeRounded size={28} />,
+    // Search: <FiSearch size={24} />,
+    // Library: <VscLibrary size={24} />,
+    Login: <FiLogIn size={24} />,  
+    Register: <FiUserPlus size={24} />       
   };
 
   return (

@@ -3,10 +3,11 @@ import MainSection from "./components/Sections/MainSection";
 import AsideMenu from "./components/AsideMenu";
 import PlaylistItem from "./pages/PlaylistItem";
 import { useState } from "react";
-import { Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import MobileMenu from "./components/MobileMenu";
 import Player from "./components/Sections/Player";
-import Search from "./pages/Search";
+import Login from "./pages/Login";
+import { Register } from "./pages/Register";
 
 function App() {
   const [open, setOpen] = useState(false);
@@ -36,7 +37,8 @@ function App() {
           <Routes>
             <Route index element={<MainSection />} />
             <Route path="/playlist/:id" element={<PlaylistItem />} />
-            <Route path="/search" element={<Search />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
           </Routes>
         </main>
       </div>

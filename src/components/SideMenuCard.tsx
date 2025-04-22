@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Playlist } from "../lib/data";
+import { Playlist } from "../lib/types";
 
 interface SideMenuCardProps {
   playlist: Playlist;

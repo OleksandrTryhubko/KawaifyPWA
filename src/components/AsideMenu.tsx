@@ -1,7 +1,5 @@
 import SideMenuItem from "./SideMenuItem";
-import SideMenuCard from "./SideMenuCard";
 import kawaifyLogo from "../icons/kawaify-logo.png"; // твоє лого
-import { playlists } from "../lib/data";
 
 const AsideMenu = () => {
   return (
@@ -21,16 +19,16 @@ const AsideMenu = () => {
         <div className="bg-zinc-900 rounded-lg p-2">
           <ul>
             <SideMenuItem href="/" text="Home" />
-            <SideMenuItem href="/search" text="Search" />
+            <SideMenuItem href="/login" text="Login" />
+            <SideMenuItem href="/register" text="Register" />
           </ul>
         </div>
 
         <div className="bg-zinc-900 rounded-lg p-2 flex-1">
           <ul>
-            <SideMenuItem href="/" text="Library" />
-            {playlists.map((playlist) => (
-              <SideMenuCard key={playlist?.id} playlist={playlist} />
-            ))}
+
+          {/* місце для плейлистів через Firebase */}
+           
           </ul>
         </div>
       </nav>

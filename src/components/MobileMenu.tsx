@@ -1,7 +1,6 @@
 import { X } from "lucide-react";
 import SideMenuItem from "./SideMenuItem";
 import SideMenuCard from "./SideMenuCard";
-import { playlists } from "../lib/data";
 import kawaifyLogo from "../icons/kawaify-logo.png";
 
 interface MobileMenuProps {
@@ -39,15 +38,16 @@ const MobileMenu = ({ open, onClose }: MobileMenuProps) => {
           {/* Ось тут обгорнуто SideMenuItem в список */}
           <ul className="list-none p-0 m-0 flex flex-col gap-2">
             <SideMenuItem href="/" text="Home" />
-            <SideMenuItem href="/search" text="Search" />
+            <SideMenuItem href="/login" text="Login" />
+            <SideMenuItem href="/register" text="Register" />
           </ul>
 
           <div className="border-t border-zinc-800 pt-2">
             <span className="text-sm text-gray-100">Your Library</span>
             <ul className="mt-2 flex flex-col gap-2">
-              {playlists.map((playlist) => (
-                <SideMenuCard key={playlist?.id} playlist={playlist} />
-              ))}
+              
+              {/* місце для плейлистів через Firebase */}
+
             </ul>
           </div>
         </nav>
