@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { fetchAudiusTracks } from "../../api/audius";
+import { usePlayerStore } from "../../store/playerStore";
 import Greeting from "../Greeting";
 
 interface AudiusTrack {
@@ -19,10 +20,28 @@ interface AudiusTrack {
 
 const MainSection = () => {
   const [tracks, setTracks] = useState<AudiusTrack[]>([]);
+  const { setCurrentTrack, setIsPlaying } = usePlayerStore();
 
   useEffect(() => {
     fetchAudiusTracks("lofi", 48).then((res) => setTracks(res));
   }, []);
+
+  const handlePlay = (track: AudiusTrack) => {
+    setCurrentTrack({
+      id: track.id,
+      title: track.title,
+      artists: [track.user.name],
+      genre: "lofi",
+      duration: String(track.duration ?? "0:00"),
+      image:
+        track.artwork?.["480x480"] ||
+        track.artwork?.["150x150"] ||
+        "/fallback.jpg",
+      streamUrl: `https://discoveryprovider.audius.co/v1/tracks/${track.id}/stream?app_name=kawaify`,
+      source: "audius",
+    });
+    setIsPlaying(true);
+  };
 
   return (
     <div
@@ -36,7 +55,8 @@ const MainSection = () => {
           {tracks.map((track) => (
             <div
               key={track.id}
-              className="w-44 bg-zinc-800/60 hover:bg-zinc-800 transition p-2 rounded-md shadow-lg"
+              className="w-44 bg-zinc-800/60 hover:bg-zinc-800 transition p-2 rounded-md shadow-lg cursor-pointer"
+              onClick={() => handlePlay(track)}
             >
               <img
                 src={

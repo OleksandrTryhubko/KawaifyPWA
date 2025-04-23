@@ -6,61 +6,66 @@ import { VolumeControl } from "../Player/Volume";
 import { CurrentSong, SongControl } from "../Player/Song";
 
 const Player = () => {
-  const { currentMusic, isPlaying, setIsPlaying, volume } = usePlayerStore(
-    (state) => state
-  );
+  const { currentTrack, isPlaying, setIsPlaying, volume } = usePlayerStore((state) => ({
+    currentTrack: state.currentTrack,
+    isPlaying: state.isPlaying,
+    setIsPlaying: state.setIsPlaying,
+    volume: state.volume,
+  }));
+
   const audioRef = useRef<HTMLAudioElement>(new Audio());
 
+  // Play / Pause effect
   useEffect(() => {
-    isPlaying ? audioRef.current.play() : audioRef.current.pause();
+    if (!audioRef.current.src) return;
+    isPlaying ? audioRef.current.play().catch(console.error) : audioRef.current.pause();
   }, [isPlaying]);
 
+  // Volume effect
   useEffect(() => {
     audioRef.current.volume = volume;
   }, [volume]);
 
+  // Load track when currentTrack changes
   useEffect(() => {
-    const { song, playlist } = currentMusic;
+    if (!currentTrack) return;
 
-    if (song) {
-      const src = `/music/${playlist?.id}/0${song.id}.mp3`;
-      audioRef.current.src = src;
-      audioRef.current.volume = volume;
-      audioRef.current.play();
+    audioRef.current.src = currentTrack.streamUrl;
+    audioRef.current.load();
+    if (isPlaying) {
+      audioRef.current.play().catch(console.error);
     }
-  }, [currentMusic]);
+  }, [currentTrack]);
 
   const handleClick = () => {
     setIsPlaying(!isPlaying);
   };
 
   return (
-    <>
-      <div className="flex flex-col sm:flex-row items-center justify-between w-full px-2 py-2 gap-2 sm:gap-0 z-50">
-        <div className="w-[200px]">
-          {currentMusic?.song && <CurrentSong {...currentMusic.song} />}
-        </div>
-
-        <div className="grid place-content-center gap-4 flex-1">
-          <div className="flex justify-center flex-col items-center">
-            <button
-              className={`bg-white rounded-full p-2 ${
-                currentMusic.song ? "" : "hidden"
-              }`}
-              onClick={handleClick}
-            >
-              {isPlaying ? <Pause /> : <Play />}
-            </button>
-            <SongControl audio={audioRef} />
-            <audio ref={audioRef} />
-          </div>
-        </div>
-
-        <div className="grid place-content-center">
-          <VolumeControl />
-        </div>
+    <div className="flex flex-col sm:flex-row items-center justify-between w-full px-2 py-2 gap-2 sm:gap-0 z-50 bg-zinc-900 rounded-lg shadow-md">
+      <div className="w-[200px]">
+        {currentTrack && <CurrentSong {...currentTrack} />}
       </div>
-    </>
+
+      <div className="flex flex-col items-center flex-1 gap-2">
+        <button
+          className={`bg-white rounded-full p-2 ${
+            currentTrack ? "" : "opacity-50 pointer-events-none"
+          }`}
+          onClick={handleClick}
+        >
+          {isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6" />}
+        </button>
+
+        {/* Візуальний контроль таймлайну */}
+        {currentTrack && <SongControl audio={audioRef} />}
+        <audio ref={audioRef} />
+      </div>
+
+      <div className="grid place-content-center">
+        <VolumeControl />
+      </div>
+    </div>
   );
 };
 

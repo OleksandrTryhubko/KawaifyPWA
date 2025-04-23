@@ -4,19 +4,16 @@ import { usePlayerStore } from "../store/playerStore";
 
 interface SimplePlayButtonProps {
   size?: "small" | "large";
-  onClickPlay: () => void;
+  onClickPlay?: () => void;
 }
 
 const SimplePlayButton = ({ size = "small", onClickPlay }: SimplePlayButtonProps) => {
-  const { isPlaying, setIsPlaying } = usePlayerStore((state) => state);
+  const isPlaying = usePlayerStore((state) => state.isPlaying);
+  const togglePlayPause = usePlayerStore((state) => state.togglePlayPause);
 
   const handleClick = () => {
-    if (isPlaying) {
-      setIsPlaying(false);
-    } else {
-      setIsPlaying(true);
-      onClickPlay();
-    }
+    togglePlayPause();
+    if (onClickPlay) onClickPlay();
   };
 
   const iconClassName = size === "small" ? "w-4 h-4" : "w-6 h-6";
