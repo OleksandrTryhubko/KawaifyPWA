@@ -62,11 +62,9 @@ const MainSection = () => {
       id="playlist-container"
       className="relative transition-all duration-1000 bg-pink-400 rounded-lg overflow-hidden"
     >
-      {/* Header */}
       <div className="relative z-10 px-6 pt-10">
         <Greeting />
 
-        {/* Genre Buttons */}
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mt-6 mb-6">
           {GENRES.map((g) => (
             <button
@@ -83,7 +81,6 @@ const MainSection = () => {
           ))}
         </div>
 
-        {/* Tracks */}
         <div className="flex flex-wrap gap-4">
           {tracks.map((track) => (
             <div
@@ -111,7 +108,6 @@ const MainSection = () => {
         </div>
       </div>
 
-      {/* Градієнт */}
       <div className="absolute inset-0 rounded-lg bg-gradient-to-t from-zinc-900 via-purple-900/80 to-transparent z-0" />
     </div>
   );

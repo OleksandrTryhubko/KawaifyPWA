@@ -44,7 +44,7 @@ const PlaylistModal = ({ open, onClose }: PlaylistModalProps) => {
   return (
     <div className="fixed inset-0 bg-black/70 z-50 flex justify-center items-center">
       <div className="bg-zinc-900 p-4 rounded-lg w-full max-w-sm">
-        <h2 className="text-white text-lg mb-3">Додати до плейлисту</h2>
+        <h2 className="text-white text-lg mb-3">add Playlist</h2>
         <ul className="space-y-2">
           {playlists.map((pl) => (
             <li
@@ -60,7 +60,7 @@ const PlaylistModal = ({ open, onClose }: PlaylistModalProps) => {
         <div className="mt-4">
           <input
             type="text"
-            placeholder="Новий плейлист"
+            placeholder="New Playlist"
             className="w-full p-2 rounded bg-zinc-800 text-white mb-2"
             value={newTitle}
             onChange={(e) => setNewTitle(e.target.value)}
@@ -69,7 +69,7 @@ const PlaylistModal = ({ open, onClose }: PlaylistModalProps) => {
             onClick={handleCreate}
             className="w-full bg-pink-500 hover:bg-pink-600 text-white rounded p-2"
           >
-            Створити і додати
+           Create and add
           </button>
         </div>
 

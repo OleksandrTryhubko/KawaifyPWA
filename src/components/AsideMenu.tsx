@@ -9,7 +9,6 @@ const AsideMenu = () => {
   return (
     <>
       <nav className="flex flex-col flex-1 gap-2 p-4">
-        {/* Logo */}
         <div className="mb-6 flex items-center gap-3">
           <img
             src={kawaifyLogo}
@@ -21,7 +20,6 @@ const AsideMenu = () => {
           </span>
         </div>
 
-        {/* Основні навігаційні кнопки */}
         <div className="bg-zinc-900 rounded-lg p-2">
           <ul>
             <SideMenuItem href="/" text="Home" />
@@ -30,13 +28,11 @@ const AsideMenu = () => {
           </ul>
         </div>
 
-        {/* Бібліотека користувача */}
         <div className="bg-zinc-900 rounded-lg p-2 flex-1">
           <ul>
             <YourLibraryList />
           </ul>
 
-          {/* Кнопка виходу */}
           {user && (
             <div className="mt-4 px-5">
               <button

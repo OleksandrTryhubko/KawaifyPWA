@@ -1,7 +1,6 @@
 import { doc, setDoc, updateDoc, getDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../lib/firebase";
 
-// 🔹 Створення користувача
 export const createUser = async (email: string, uid: string) => {
   await setDoc(doc(db, "users", uid), {
     email,
@@ -13,7 +12,6 @@ export const createUser = async (email: string, uid: string) => {
   });
 };
 
-// 🔹 Додати або видалити трек з улюблених
 export const toggleFavoriteTrack = async (userId: string, trackId: string) => {
   const userRef = doc(db, "users", userId);
   const snap = await getDoc(userRef);
@@ -30,7 +28,6 @@ export const toggleFavoriteTrack = async (userId: string, trackId: string) => {
   await updateDoc(userRef, { favorites: updatedFavorites });
 };
 
-// 🔹 Створення плейлиста
 interface NewPlaylist {
   id: string;
   title: string;
@@ -49,7 +46,6 @@ export const addUserPlaylist = async (userId: string, playlist: NewPlaylist) => 
   });
 };
 
-// 🔹 Додати трек до конкретного плейлиста
 export const addTrackToUserPlaylist = async (
   userId: string,
   playlistId: string,

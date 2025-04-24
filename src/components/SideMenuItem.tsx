@@ -1,4 +1,3 @@
-import { FiSearch } from "react-icons/fi";
 import { GrHomeRounded } from "react-icons/gr";
 import { FiLogIn, FiUserPlus } from "react-icons/fi";
 import { Link } from "react-router-dom";
@@ -11,7 +10,6 @@ interface SideMenuProps {
 const SideMenuItem = ({ href, text }: SideMenuProps) => {
   const linksMap: { [key: string]: JSX.Element } = {
     Home: <GrHomeRounded size={28} />,
-    // Search: <FiSearch size={24} />,
     Login: <FiLogIn size={24} />,  
     Register: <FiUserPlus size={24} />       
   };

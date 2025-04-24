@@ -3,11 +3,10 @@ import { fetchAudiusTracks } from "../api/audius";
 import { db } from "../lib/firebase";
 import { doc, setDoc, getDoc } from "firebase/firestore";
 
-// 🔄 ОНОВЛЕНО: `artists: string[]`
 export interface Track {
   id: string;
   title: string;
-  artists: string[]; // ✅ масив артистів
+  artists: string[]; 
   genre?: string;
   duration: string;
   image: string;
@@ -32,7 +31,6 @@ interface UsePlayerStoreState {
   loadTracksFromAudius: (query?: string) => Promise<void>;
 }
 
-// Зберігає трек у Firestore, якщо його ще немає
 const saveTrackIfNeeded = async (track: Track) => {
   const ref = doc(db, "songs", track.id);
   const snap = await getDoc(ref);
@@ -40,7 +38,7 @@ const saveTrackIfNeeded = async (track: Track) => {
     try {
       await setDoc(ref, track);
     } catch (e) {
-      console.error(`Не вдалося зберегти трек ${track.title}:`, e);
+      console.error(`Failed to save track ${track.title}:`, e);
     }
   }
 };
@@ -68,11 +66,10 @@ export const usePlayerStore = create<UsePlayerStoreState>()((set) => ({
     try {
       const data = await fetchAudiusTracks(query, 40);
 
-      // 🔄 ОНОВЛЕНО: формування треків з масивом артистів
       const formatted: Track[] = data.map((track: any) => ({
         id: track.id,
         title: track.title,
-        artists: [track.user?.name ?? "Unknown"], // ✅ тут!
+        artists: [track.user?.name ?? "Unknown"],
         genre: track.genre ?? "",
         duration: track.duration ?? "0:00",
         image:
@@ -87,7 +84,7 @@ export const usePlayerStore = create<UsePlayerStoreState>()((set) => ({
 
       formatted.forEach(saveTrackIfNeeded);
     } catch (e) {
-      console.error("Помилка при завантаженні треків з Audius:", e);
+      console.error("Error when downloading tracks from Audius:", e);
     } finally {
       set({ isLoading: false });
     }

@@ -31,7 +31,7 @@ const FavoritesPage = () => {
 
   return (
     <div className="p-6 text-white">
-      <h1 className="text-3xl font-bold mb-4">♥ Вподобані пісні</h1>
+      <h1 className="text-3xl font-bold mb-4">♥ Favorite songs</h1>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
         {songs.map((song) => (
           <div key={song.id} className="bg-zinc-800 p-3 rounded-lg hover:bg-zinc-700 transition">
@@ -42,7 +42,7 @@ const FavoritesPage = () => {
               onClick={() => handlePlay(song)}
               className="mt-2 text-pink-400 hover:underline text-xs"
             >
-              ▶ Відтворити
+              ▶ Play
             </button>
           </div>
         ))}

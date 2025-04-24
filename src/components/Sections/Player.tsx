@@ -17,18 +17,15 @@ const Player = () => {
 
   const audioRef = useRef<HTMLAudioElement>(new Audio());
 
-  // Play / Pause effect
   useEffect(() => {
     if (!audioRef.current.src) return;
     isPlaying ? audioRef.current.play().catch(console.error) : audioRef.current.pause();
   }, [isPlaying]);
 
-  // Volume effect
   useEffect(() => {
     audioRef.current.volume = volume;
   }, [volume]);
 
-  // Load track when currentTrack changes
   useEffect(() => {
     if (!currentTrack) return;
 
@@ -63,7 +60,6 @@ const Player = () => {
           <AddToPlaylistButton />
         </div>
 
-        {/* Візуальний контроль таймлайну */}
         {currentTrack && <SongControl audio={audioRef} />}
         <audio ref={audioRef} />
       </div>

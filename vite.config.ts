@@ -44,7 +44,7 @@ export default defineConfig({
       devOptions: {
         enabled: true,
         type: 'module',
-        suppressWarnings: true // це прибирає ворнінги про порожні match-и
+        suppressWarnings: true
       },
       workbox: process.env.NODE_ENV === 'production'
         ? {
@@ -58,7 +58,7 @@ export default defineConfig({
                   cacheName: 'audius-api-cache',
                   expiration: {
                     maxEntries: 100,
-                    maxAgeSeconds: 60 * 60 * 24 // 1 day
+                    maxAgeSeconds: 60 * 60 * 24
                   },
                   cacheableResponse: {
                     statuses: [0, 200]
@@ -69,5 +69,8 @@ export default defineConfig({
           }
         : undefined
     })
-  ]
+  ],
+  build: {
+    chunkSizeWarningLimit: 1500 
+  }
 });
