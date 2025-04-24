@@ -1,6 +1,8 @@
 import { X } from "lucide-react";
 import SideMenuItem from "./SideMenuItem";
+import YourLibraryList from "./YourLibraryList";
 import kawaifyLogo from "../icons/kawaify-logo.png";
+import { useAuth } from "../hooks/useAuth";
 
 interface MobileMenuProps {
   open: boolean;
@@ -8,6 +10,8 @@ interface MobileMenuProps {
 }
 
 const MobileMenu = ({ open, onClose }: MobileMenuProps) => {
+  const { user, logout } = useAuth();
+
   return (
     <div
       className={`fixed inset-0 z-50 bg-zinc-900 text-white transform transition-transform duration-300 ${
@@ -34,20 +38,31 @@ const MobileMenu = ({ open, onClose }: MobileMenuProps) => {
       {/* Content */}
       <div className="flex flex-col h-full overflow-y-auto pb-32">
         <nav className="p-4 flex flex-col gap-4">
-          {/* Ось тут обгорнуто SideMenuItem в список */}
           <ul className="list-none p-0 m-0 flex flex-col gap-2">
             <SideMenuItem href="/" text="Home" />
-            <SideMenuItem href="/login" text="Login" />
-            <SideMenuItem href="/register" text="Register" />
+            {!user && <SideMenuItem href="/login" text="Login" />}
+            {!user && <SideMenuItem href="/register" text="Register" />}
           </ul>
 
           <div className="border-t border-zinc-800 pt-2">
             <span className="text-sm text-gray-100">Your Library</span>
             <ul className="mt-2 flex flex-col gap-2">
-              
-              {/* місце для плейлистів через Firebase */}
-
+              <YourLibraryList />
             </ul>
+
+            {user && (
+              <div className="mt-4 px-1">
+                <button
+                  onClick={() => {
+                    logout();
+                    onClose(); 
+                  }}
+                  className="text-sm text-red-500 hover:text-red-700 transition"
+                >
+                  SingOut
+                </button>
+              </div>
+            )}
           </div>
         </nav>
       </div>

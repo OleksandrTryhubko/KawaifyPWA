@@ -1,10 +1,15 @@
 import SideMenuItem from "./SideMenuItem";
-import kawaifyLogo from "../icons/kawaify-logo.png"; // твоє лого
+import YourLibraryList from "./YourLibraryList";
+import kawaifyLogo from "../icons/kawaify-logo.png";
+import { useAuth } from "../hooks/useAuth";
 
 const AsideMenu = () => {
+  const { user, logout } = useAuth();
+
   return (
     <>
       <nav className="flex flex-col flex-1 gap-2 p-4">
+        {/* Logo */}
         <div className="mb-6 flex items-center gap-3">
           <img
             src={kawaifyLogo}
@@ -16,20 +21,32 @@ const AsideMenu = () => {
           </span>
         </div>
 
+        {/* Основні навігаційні кнопки */}
         <div className="bg-zinc-900 rounded-lg p-2">
           <ul>
             <SideMenuItem href="/" text="Home" />
-            <SideMenuItem href="/login" text="Login" />
-            <SideMenuItem href="/register" text="Register" />
+            {!user && <SideMenuItem href="/login" text="Login" />}
+            {!user && <SideMenuItem href="/register" text="Register" />}
           </ul>
         </div>
 
+        {/* Бібліотека користувача */}
         <div className="bg-zinc-900 rounded-lg p-2 flex-1">
           <ul>
-
-          {/* місце для плейлистів через Firebase */}
-           
+            <YourLibraryList />
           </ul>
+
+          {/* Кнопка виходу */}
+          {user && (
+            <div className="mt-4 px-5">
+              <button
+                onClick={logout}
+                className="text-sm text-red-500 hover:text-red-700 transition"
+              >
+                SingOut
+              </button>
+            </div>
+          )}
         </div>
       </nav>
     </>

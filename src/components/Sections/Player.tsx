@@ -4,6 +4,8 @@ import { Play } from "../Player/Play";
 import { Pause } from "../Player/Pause";
 import { VolumeControl } from "../Player/Volume";
 import { CurrentSong, SongControl } from "../Player/Song";
+import FavoriteButton from "../Player/FavoriteButton";
+import AddToPlaylistButton from "../Player/AddToPlaylistButton";
 
 const Player = () => {
   const { currentTrack, isPlaying, setIsPlaying, volume } = usePlayerStore((state) => ({
@@ -48,14 +50,18 @@ const Player = () => {
       </div>
 
       <div className="flex flex-col items-center flex-1 gap-2">
-        <button
-          className={`bg-white rounded-full p-2 ${
-            currentTrack ? "" : "opacity-50 pointer-events-none"
-          }`}
-          onClick={handleClick}
-        >
-          {isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6" />}
-        </button>
+        <div className="flex items-center gap-4">
+          <FavoriteButton />
+          <button
+            className={`bg-white rounded-full p-2 ${
+              currentTrack ? "" : "opacity-50 pointer-events-none"
+            }`}
+            onClick={handleClick}
+          >
+            {isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6" />}
+          </button>
+          <AddToPlaylistButton />
+        </div>
 
         {/* Візуальний контроль таймлайну */}
         {currentTrack && <SongControl audio={audioRef} />}

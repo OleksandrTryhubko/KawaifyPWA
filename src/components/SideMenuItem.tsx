@@ -1,4 +1,3 @@
-import { VscLibrary } from "react-icons/vsc";
 import { FiSearch } from "react-icons/fi";
 import { GrHomeRounded } from "react-icons/gr";
 import { FiLogIn, FiUserPlus } from "react-icons/fi";
@@ -13,7 +12,6 @@ const SideMenuItem = ({ href, text }: SideMenuProps) => {
   const linksMap: { [key: string]: JSX.Element } = {
     Home: <GrHomeRounded size={28} />,
     // Search: <FiSearch size={24} />,
-    // Library: <VscLibrary size={24} />,
     Login: <FiLogIn size={24} />,  
     Register: <FiUserPlus size={24} />       
   };
