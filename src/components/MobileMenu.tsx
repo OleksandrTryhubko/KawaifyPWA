@@ -18,7 +18,6 @@ const MobileMenu = ({ open, onClose }: MobileMenuProps) => {
         open ? "translate-x-0" : "-translate-x-full"
       }`}
     >
-      {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800">
         <div className="flex items-center gap-2">
           <img
@@ -35,7 +34,6 @@ const MobileMenu = ({ open, onClose }: MobileMenuProps) => {
         </button>
       </div>
 
-      {/* Content */}
       <div className="flex flex-col h-full overflow-y-auto pb-32">
         <nav className="p-4 flex flex-col gap-4">
           <ul className="list-none p-0 m-0 flex flex-col gap-2">

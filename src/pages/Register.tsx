@@ -12,7 +12,7 @@ export default function Register() {
   const handleRegister = async () => {
     try {
       const res = await createUserWithEmailAndPassword(auth, email, password);
-      await createUser(email, res.user.uid); // тільки тут, а не прямо в Register.tsx
+      await createUser(email, res.user.uid);
       alert("Реєстрація успішна!");
     } catch (err: any) {
       setError(err.message);

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth, db } from "../lib/firebase";
+import { auth } from "../lib/firebase";
 import { Link } from "react-router-dom";
 
 export default function Login() {
@@ -11,7 +11,7 @@ export default function Login() {
   const handleLogin = async () => {
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      alert("Успішний вхід!");
+      alert("Successful login!");
     } catch (err: any) {
       setError(err.message);
     }

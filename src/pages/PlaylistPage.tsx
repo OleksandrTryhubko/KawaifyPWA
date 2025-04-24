@@ -70,14 +70,14 @@ const PlaylistPage = () => {
       playlists: updatedPlaylists,
     });
 
-    alert("Плейлист видалено!");
+    alert("Playlist deleted");
     navigate("/");
   };
 
   if (!playlist) {
     return (
       <div className="p-6 text-white">
-        <p className="text-lg">Плейлист не знайдено або не належить вам 😢</p>
+        <p className="text-lg">Playlist not found or not owned by you 😢</p>
       </div>
     );
   }
@@ -130,7 +130,7 @@ const PlaylistPage = () => {
               onClick={() => handlePlay(song)}
               className="mt-2 text-pink-400 hover:underline text-xs"
             >
-              ▶ Відтворити
+              ▶ Play
             </button>
           </div>
         ))}
