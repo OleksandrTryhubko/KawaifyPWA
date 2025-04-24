@@ -6,6 +6,8 @@ import MobileMenu from "./components/MobileMenu";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Profile from "./pages/profile";
+import PlaylistPage from "./pages/PlaylistPage";
+import FavoritesPage from "./pages/FavoritesPage";
 import { useState } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 
@@ -15,12 +17,10 @@ function App() {
   return (
     <div className="min-h-screen flex flex-col bg-black">
       {/* Кнопка-бургер */}
-      <button
-        className="lg:hidden fixed top-4 left-4 z-50 bg-zinc-900 text-white p-2 rounded shadow-md"
+      <div
+        className="lg:hidden fixed top-1/2 left-0 z-40 w-3 h-12 bg-zinc-700 rounded-r-md opacity-80 hover:opacity-100 transition-opacity"
         onClick={() => setOpen(true)}
-      >
-        ☰
-      </button>
+      />
 
       <MobileMenu open={open} onClose={() => setOpen(false)} />
 
@@ -39,6 +39,8 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/profile/:uid" element={<Profile />} />
+            <Route path="/playlist/:id" element={<PlaylistPage />} />
+            <Route path="/favorites" element={<FavoritesPage />} />
           </Routes>
         </main>
       </div>
