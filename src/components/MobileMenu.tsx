@@ -40,6 +40,7 @@ const MobileMenu = ({ open, onClose }: MobileMenuProps) => {
             <SideMenuItem href="/" text="Home" />
             {!user && <SideMenuItem href="/login" text="Login" />}
             {!user && <SideMenuItem href="/register" text="Register" />}
+            {user && <SideMenuItem href="/account" text="Account" />}
           </ul>
 
           <div className="border-t border-zinc-800 pt-2">

@@ -25,6 +25,7 @@ const AsideMenu = () => {
             <SideMenuItem href="/" text="Home" />
             {!user && <SideMenuItem href="/login" text="Login" />}
             {!user && <SideMenuItem href="/register" text="Register" />}
+            {user && <SideMenuItem href="/account" text="Account" />}
           </ul>
         </div>
 

@@ -7,6 +7,7 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import PlaylistPage from "./pages/PlaylistPage";
 import FavoritesPage from "./pages/FavoritesPage";
+import AccountPage from "./features/account/AccountPage";
 import { useState } from "react";
 import { Routes, Route } from "react-router-dom"; 
 
@@ -34,6 +35,7 @@ function App() {
             <Route index element={<MainSection />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/account" element={<AccountPage />} />
             <Route path="/playlist/:id" element={<PlaylistPage />} />
             <Route path="/favorites" element={<FavoritesPage />} />
           </Routes>
