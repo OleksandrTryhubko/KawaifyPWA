@@ -1,5 +1,6 @@
 import { doc, setDoc, updateDoc, getDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../lib/firebase";
+import type { Playlist } from "../types/playlist";
 
 export const createUser = async (email: string, uid: string) => {
   await setDoc(doc(db, "users", uid), {
@@ -12,59 +13,88 @@ export const createUser = async (email: string, uid: string) => {
   });
 };
 
-export const toggleFavoriteTrack = async (userId: string, trackId: string) => {
+export type FavoriteToggleResult = "added" | "removed" | "unchanged";
+
+export const toggleFavoriteTrack = async (
+  userId: string,
+  trackId: string
+): Promise<FavoriteToggleResult> => {
   const userRef = doc(db, "users", userId);
   const snap = await getDoc(userRef);
 
-  if (!snap.exists()) return;
+  if (!snap.exists()) return "unchanged";
 
   const data = snap.data();
   const favorites: string[] = data.favorites || [];
 
-  const updatedFavorites = favorites.includes(trackId)
-    ? favorites.filter((id) => id !== trackId)
-    : [...favorites, trackId];
+  if (favorites.includes(trackId)) {
+    const updatedFavorites = favorites.filter((id) => id !== trackId);
+    await updateDoc(userRef, { favorites: updatedFavorites });
+    return "removed";
+  }
 
-  await updateDoc(userRef, { favorites: updatedFavorites });
+  await updateDoc(userRef, { favorites: [...favorites, trackId] });
+  return "added";
 };
 
-interface NewPlaylist {
-  id: string;
-  title: string;
-  image?: string;
-  createdAt: any;
-  trackIds: string[];
-}
+export type AddPlaylistResult = "created" | "duplicate_name" | "error";
 
-export const addUserPlaylist = async (userId: string, playlist: NewPlaylist) => {
-  const userRef = doc(db, "users", userId);
-  const snap = await getDoc(userRef);
-  const playlists: NewPlaylist[] = snap.data()?.playlists || [];
+export const addUserPlaylist = async (
+  userId: string,
+  playlist: Playlist
+): Promise<AddPlaylistResult> => {
+  try {
+    const userRef = doc(db, "users", userId);
+    const snap = await getDoc(userRef);
+    const playlists: Playlist[] = snap.data()?.playlists || [];
 
-  await updateDoc(userRef, {
-    playlists: [...playlists, playlist],
-  });
+    const normalized = playlist.title.trim().toLowerCase();
+    const duplicate = playlists.some(
+      (p) => p.title.trim().toLowerCase() === normalized
+    );
+    if (duplicate) return "duplicate_name";
+
+    await updateDoc(userRef, {
+      playlists: [...playlists, playlist],
+    });
+    return "created";
+  } catch {
+    return "error";
+  }
 };
+
+export type AddTrackToPlaylistResult =
+  | "added"
+  | "already_in_playlist"
+  | "playlist_not_found"
+  | "error";
 
 export const addTrackToUserPlaylist = async (
   userId: string,
   playlistId: string,
   trackId: string
-) => {
-  const userRef = doc(db, "users", userId);
-  const snap = await getDoc(userRef);
-  const playlists = snap.data()?.playlists || [];
+): Promise<AddTrackToPlaylistResult> => {
+  try {
+    const userRef = doc(db, "users", userId);
+    const snap = await getDoc(userRef);
+    const playlists: Playlist[] = snap.data()?.playlists || [];
 
-  const updatedPlaylists = playlists.map((playlist: NewPlaylist) =>
-    playlist.id === playlistId
-      ? {
-          ...playlist,
-          trackIds: playlist.trackIds.includes(trackId)
-            ? playlist.trackIds
-            : [...playlist.trackIds, trackId],
-        }
-      : playlist
-  );
+    const target = playlists.find((p) => p.id === playlistId);
+    if (!target) return "playlist_not_found";
 
-  await updateDoc(userRef, { playlists: updatedPlaylists });
+    if (target.trackIds.includes(trackId)) {
+      return "already_in_playlist";
+    }
+
+    const updatedPlaylists = playlists.map((playlist) =>
+      playlist.id === playlistId
+        ? { ...playlist, trackIds: [...playlist.trackIds, trackId] }
+        : playlist
+    );
+
+    await updateDoc(userRef, { playlists: updatedPlaylists });
+    return "added";
+  } catch {
+    return "error";
+  }
 };

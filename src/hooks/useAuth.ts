@@ -2,18 +2,13 @@ import { useEffect, useState } from "react";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { auth, db } from "../lib/firebase";
+import type { UserProfile } from "../types/user";
+import type { Playlist } from "../types/playlist";
 
-export interface UserData {
-  uid: string;
-  email: string;
-  displayName: string;
-  avatar: string;
-  favorites: string[];
-  playlists: any[];
-}
+export type { UserProfile };
 
 export const useAuth = () => {
-  const [user, setUser] = useState<UserData | null>(null);
+  const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -23,13 +18,14 @@ export const useAuth = () => {
         const userSnap = await getDoc(userRef);
 
         if (userSnap.exists()) {
+          const data = userSnap.data();
           setUser({
             uid: firebaseUser.uid,
             email: firebaseUser.email || "",
-            displayName: userSnap.data().displayName || "",
-            avatar: userSnap.data().avatar || "",
-            favorites: userSnap.data().favorites || [],
-            playlists: userSnap.data().playlists || [],
+            displayName: data.displayName || "",
+            avatar: data.avatar || "",
+            favorites: data.favorites || [],
+            playlists: (data.playlists || []) as Playlist[],
           });
         }
       } else {
@@ -47,5 +43,22 @@ export const useAuth = () => {
     setUser(null);
   };
 
-  return { user, loading, logout };
+  const refreshUser = async () => {
+    const firebaseUser = auth.currentUser;
+    if (!firebaseUser) return;
+    const userSnap = await getDoc(doc(db, "users", firebaseUser.uid));
+    if (userSnap.exists()) {
+      const data = userSnap.data();
+      setUser({
+        uid: firebaseUser.uid,
+        email: firebaseUser.email || "",
+        displayName: data.displayName || "",
+        avatar: data.avatar || "",
+        favorites: data.favorites || [],
+        playlists: (data.playlists || []) as Playlist[],
+      });
+    }
+  };
+
+  return { user, loading, logout, refreshUser };
 };

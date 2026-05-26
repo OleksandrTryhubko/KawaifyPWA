@@ -3,10 +3,12 @@ import { doc, getDoc } from "firebase/firestore";
 import { useAuth } from "../hooks/useAuth";
 import { db } from "../lib/firebase";
 import { usePlayerStore } from "../store/playerStore";
+import type { Track } from "../types/track";
+import TrackArtwork from "../components/common/TrackArtwork";
 
 const FavoritesPage = () => {
   const { user } = useAuth();
-  const [songs, setSongs] = useState<any[]>([]);
+  const [songs, setSongs] = useState<Track[]>([]);
   const { setCurrentTrack, setIsPlaying } = usePlayerStore();
 
   useEffect(() => {
@@ -15,16 +17,16 @@ const FavoritesPage = () => {
       const loaded = await Promise.all(
         user.favorites.map(async (id) => {
           const snap = await getDoc(doc(db, "songs", id));
-          return snap.exists() ? snap.data() : null;
+          return snap.exists() ? (snap.data() as Track) : null;
         })
       );
-      setSongs(loaded.filter(Boolean));
+      setSongs(loaded.filter((s): s is Track => s !== null));
     };
 
     fetchSongs();
   }, [user]);
 
-  const handlePlay = (song: any) => {
+  const handlePlay = (song: Track) => {
     setCurrentTrack(song);
     setIsPlaying(true);
   };
@@ -34,8 +36,15 @@ const FavoritesPage = () => {
       <h1 className="text-3xl font-bold mb-4">♥ Favorite songs</h1>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
         {songs.map((song) => (
-          <div key={song.id} className="bg-zinc-800 p-3 rounded-lg hover:bg-zinc-700 transition">
-            <img src={song.image} alt={song.title} className="rounded mb-2 object-cover w-full h-40" />
+          <div
+            key={song.id}
+            className="bg-zinc-800 p-3 rounded-lg hover:bg-zinc-700 transition"
+          >
+            <TrackArtwork
+              src={song.image}
+              alt={song.title}
+              className="mb-2 h-40 !aspect-auto"
+            />
             <div className="text-sm font-medium">{song.title}</div>
             <div className="text-xs text-zinc-400">{song.artists?.join(", ")}</div>
             <button

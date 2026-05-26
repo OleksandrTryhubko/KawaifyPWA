@@ -1,18 +1,16 @@
 import { create } from "zustand";
-import { fetchAudiusTracks } from "../api/audius";
+import {
+  fetchAudiusTracks,
+  formatAudiusDuration,
+  getAudiusArtworkUrl,
+  getAudiusStreamUrl,
+} from "../api/audius";
+import type { AudiusTrack } from "../types/audius";
+import type { Track } from "../types/track";
 import { db } from "../lib/firebase";
 import { doc, setDoc, getDoc } from "firebase/firestore";
 
-export interface Track {
-  id: string;
-  title: string;
-  artists: string[]; 
-  genre?: string;
-  duration: string;
-  image: string;
-  streamUrl: string;
-  source: string;
-}
+export type { Track } from "../types/track";
 
 interface UsePlayerStoreState {
   isPlaying: boolean;
@@ -43,6 +41,22 @@ const saveTrackIfNeeded = async (track: Track) => {
   }
 };
 
+function mapAudiusToTrack(track: AudiusTrack): Track {
+  return {
+    id: track.id,
+    title: track.title,
+    artists: [track.user?.name ?? "Unknown"],
+    genre: track.genre ?? "",
+    duration:
+      typeof track.duration === "number"
+        ? formatAudiusDuration(track.duration)
+        : "0:00",
+    image: getAudiusArtworkUrl(track.artwork),
+    streamUrl: track.stream_url ?? getAudiusStreamUrl(track.id),
+    source: "audius",
+  };
+}
+
 export const usePlayerStore = create<UsePlayerStoreState>()((set) => ({
   isPlaying: false,
   currentTrack: null,
@@ -65,23 +79,8 @@ export const usePlayerStore = create<UsePlayerStoreState>()((set) => ({
     set({ isLoading: true });
     try {
       const data = await fetchAudiusTracks(query, 40);
-
-      const formatted: Track[] = data.map((track: any) => ({
-        id: track.id,
-        title: track.title,
-        artists: [track.user?.name ?? "Unknown"],
-        genre: track.genre ?? "",
-        duration: track.duration ?? "0:00",
-        image:
-          track.artwork?.["480x480"] ||
-          track.artwork?.["150x150"] ||
-          "fallback.jpg",
-        streamUrl: track.stream_url,
-        source: "audius",
-      }));
-
+      const formatted = data.map(mapAudiusToTrack);
       set({ tracks: formatted });
-
       formatted.forEach(saveTrackIfNeeded);
     } catch (e) {
       console.error("Error when downloading tracks from Audius:", e);

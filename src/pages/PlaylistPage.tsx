@@ -4,38 +4,46 @@ import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../hooks/useAuth";
 import { usePlayerStore } from "../store/playerStore";
+import { useToast } from "../hooks/useToast";
+import type { Playlist } from "../types/playlist";
+import type { Track } from "../types/track";
+import TrackArtwork from "../components/common/TrackArtwork";
 
 const PlaylistPage = () => {
   const { id } = useParams();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [playlist, setPlaylist] = useState<any>(null);
-  const [songs, setSongs] = useState<any[]>([]);
+  const toast = useToast();
+  const [playlist, setPlaylist] = useState<Playlist | null>(null);
+  const [songs, setSongs] = useState<Track[]>([]);
   const { setCurrentTrack, setIsPlaying } = usePlayerStore();
 
   useEffect(() => {
     if (!user || !id) return;
 
-    const foundPlaylist = user.playlists.find((p: any) => p.id === id);
-    setPlaylist(foundPlaylist);
+    const foundPlaylist = user.playlists.find((p) => p.id === id);
+    setPlaylist(foundPlaylist ?? null);
 
     const fetchTracks = async () => {
-      if (!foundPlaylist?.trackIds?.length) return;
+      if (!foundPlaylist?.trackIds?.length) {
+        setSongs([]);
+        return;
+      }
 
       const loadedSongs = await Promise.all(
-        foundPlaylist.trackIds.map(async (trackId: string) => {
+        foundPlaylist.trackIds.map(async (trackId) => {
           const trackSnap = await getDoc(doc(db, "songs", trackId));
-          return trackSnap.exists() ? trackSnap.data() : null;
+          return trackSnap.exists() ? (trackSnap.data() as Track) : null;
         })
       );
 
-      setSongs(loadedSongs.filter(Boolean));
+      setSongs(loadedSongs.filter((s): s is Track => s !== null));
     };
 
     fetchTracks();
   }, [user, id]);
 
-  const handlePlay = (song: any) => {
+  const handlePlay = (song: Track) => {
     setCurrentTrack(song);
     setIsPlaying(true);
   };
@@ -43,9 +51,9 @@ const PlaylistPage = () => {
   const handleRemoveTrack = async (trackId: string) => {
     if (!user || !playlist) return;
 
-    const updatedPlaylists = user.playlists.map((p: any) =>
+    const updatedPlaylists = user.playlists.map((p) =>
       p.id === playlist.id
-        ? { ...p, trackIds: p.trackIds.filter((id: string) => id !== trackId) }
+        ? { ...p, trackIds: p.trackIds.filter((tid) => tid !== trackId) }
         : p
     );
 
@@ -53,24 +61,26 @@ const PlaylistPage = () => {
       playlists: updatedPlaylists,
     });
 
-    setPlaylist((prev: any) => ({
-      ...prev,
-      trackIds: prev.trackIds.filter((id: string) => id !== trackId),
-    }));
+    setPlaylist((prev) =>
+      prev
+        ? { ...prev, trackIds: prev.trackIds.filter((tid) => tid !== trackId) }
+        : null
+    );
 
     setSongs((prev) => prev.filter((s) => s.id !== trackId));
+    toast.info("Трек видалено з плейлиста");
   };
 
   const handleDeletePlaylist = async () => {
     if (!user || !playlist) return;
 
-    const updatedPlaylists = user.playlists.filter((p: any) => p.id !== playlist.id);
+    const updatedPlaylists = user.playlists.filter((p) => p.id !== playlist.id);
 
     await updateDoc(doc(db, "users", user.uid), {
       playlists: updatedPlaylists,
     });
 
-    alert("Playlist deleted");
+    toast.success("Плейлист видалено");
     navigate("/");
   };
 
@@ -85,11 +95,13 @@ const PlaylistPage = () => {
   return (
     <div className="p-6 text-white">
       <div className="flex items-center gap-4 mb-6">
-        <img
-          src={playlist.image || "/fallback.jpg"}
-          alt={playlist.title}
-          className="w-28 h-28 object-cover rounded shadow"
-        />
+        <div className="w-28 h-28 shrink-0">
+          <TrackArtwork
+            src={playlist.image}
+            alt={playlist.title}
+            className="!aspect-auto w-28 h-28 rounded shadow"
+          />
+        </div>
         <div className="flex flex-col gap-1">
           <h1 className="text-3xl font-bold">{playlist.title}</h1>
           <p className="text-sm text-zinc-400">{songs.length} трек(ів)</p>
@@ -108,15 +120,17 @@ const PlaylistPage = () => {
             key={song.id}
             className="bg-zinc-800 p-3 rounded-lg hover:bg-zinc-700 transition"
           >
-            <img
+            <TrackArtwork
               src={song.image}
               alt={song.title}
-              className="rounded mb-2 object-cover w-full h-40"
+              className="mb-2 h-40 !aspect-auto"
             />
             <div className="flex justify-between items-start">
               <div>
                 <div className="text-sm font-medium">{song.title}</div>
-                <div className="text-xs text-zinc-400">{song.artists?.join(", ")}</div>
+                <div className="text-xs text-zinc-400">
+                  {song.artists?.join(", ")}
+                </div>
               </div>
               <button
                 onClick={() => handleRemoveTrack(song.id)}

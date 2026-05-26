@@ -1,26 +1,18 @@
 import { useEffect, useState } from "react";
-import { fetchAudiusTracks } from "../../api/audius";
+import {
+  fetchAudiusTracks,
+  formatAudiusDuration,
+  getAudiusArtworkUrl,
+  getAudiusStreamUrl,
+} from "../../api/audius";
+import type { AudiusTrack } from "../../types/audius";
 import { usePlayerStore } from "../../store/playerStore";
 import Greeting from "../Greeting";
-
-interface AudiusTrack {
-  id: string;
-  title: string;
-  duration: number;
-  stream_url: string;
-  artwork: {
-    "150x150"?: string;
-    "480x480"?: string;
-    "1000x1000"?: string;
-  };
-  user: {
-    name: string;
-  };
-}
+import TrackArtwork from "../common/TrackArtwork";
 
 const GENRES = ["lofi", "hip-hop", "pop", "rock", "dance", "ambient", "jazz", "chillwave"];
 
-const genreColors: { [key: string]: string } = {
+const genreColors: Record<string, string> = {
   lofi: "from-pink-600 to-pink-500",
   "hip-hop": "from-purple-600 to-purple-500",
   pop: "from-red-600 to-red-500",
@@ -34,10 +26,17 @@ const genreColors: { [key: string]: string } = {
 const MainSection = () => {
   const [tracks, setTracks] = useState<AudiusTrack[]>([]);
   const [selectedGenre, setSelectedGenre] = useState("lofi");
+  const [loadError, setLoadError] = useState(false);
   const { setCurrentTrack, setIsPlaying } = usePlayerStore();
 
   useEffect(() => {
-    fetchAudiusTracks(selectedGenre, 48).then((res) => setTracks(res));
+    setLoadError(false);
+    fetchAudiusTracks(selectedGenre, 48)
+      .then((res) => setTracks(res))
+      .catch(() => {
+        setTracks([]);
+        setLoadError(true);
+      });
   }, [selectedGenre]);
 
   const handlePlay = (track: AudiusTrack) => {
@@ -46,12 +45,9 @@ const MainSection = () => {
       title: track.title,
       artists: [track.user.name],
       genre: selectedGenre,
-      duration: String(track.duration ?? "0:00"),
-      image:
-        track.artwork?.["480x480"] ||
-        track.artwork?.["150x150"] ||
-        "/fallback.jpg",
-      streamUrl: `https://discoveryprovider.audius.co/v1/tracks/${track.id}/stream?app_name=kawaify`,
+      duration: formatAudiusDuration(track.duration),
+      image: getAudiusArtworkUrl(track.artwork),
+      streamUrl: getAudiusStreamUrl(track.id),
       source: "audius",
     });
     setIsPlaying(true);
@@ -65,7 +61,6 @@ const MainSection = () => {
       <div className="relative z-10 px-6 pt-10">
         <Greeting />
 
-        {/* Genre Buttons */}
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mt-6 mb-6">
           {GENRES.map((g) => (
             <button
@@ -82,7 +77,12 @@ const MainSection = () => {
           ))}
         </div>
 
-        {/* Tracks in grid */}
+        {loadError && (
+          <p className="text-pink-200 text-sm mb-4">
+            Не вдалося завантажити треки. Спробуй інший жанр.
+          </p>
+        )}
+
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-4">
           {tracks.map((track) => (
             <div
@@ -90,14 +90,9 @@ const MainSection = () => {
               className="bg-zinc-800/60 hover:bg-zinc-800 transition p-2 rounded-md shadow-lg cursor-pointer"
               onClick={() => handlePlay(track)}
             >
-              <img
-                src={
-                  track.artwork?.["480x480"] ||
-                  track.artwork?.["150x150"] ||
-                  "/fallback.jpg"
-                }
+              <TrackArtwork
+                src={getAudiusArtworkUrl(track.artwork)}
                 alt={`Cover of ${track.title}`}
-                className="rounded-md w-full h-auto aspect-square object-cover"
               />
               <div className="mt-2 text-white text-sm font-semibold truncate">
                 {track.title}
@@ -110,7 +105,6 @@ const MainSection = () => {
         </div>
       </div>
 
-      {/* Gradient Overlay */}
       <div className="absolute inset-0 rounded-lg bg-gradient-to-t from-zinc-900 via-purple-900/80 to-transparent z-0" />
     </div>
   );

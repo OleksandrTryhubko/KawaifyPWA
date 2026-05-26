@@ -3,13 +3,8 @@ import { Link } from "react-router-dom";
 import { doc, onSnapshot } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../hooks/useAuth";
-
-interface Playlist {
-  id: string;
-  title: string;
-  image?: string;
-  trackIds: string[];
-}
+import type { Playlist } from "../types/playlist";
+import TrackArtwork from "./common/TrackArtwork";
 
 const YourLibraryList = () => {
   const { user } = useAuth();
@@ -55,11 +50,14 @@ const YourLibraryList = () => {
             to={`/playlist/${playlist.id}`}
             className="flex items-center gap-2 text-zinc-300 hover:text-white text-sm px-5 py-2"
           >
-            <img
-              src={playlist.image || "/fallback.jpg"}
-              alt={playlist.title}
-              className="w-8 h-8 object-cover rounded"
-            />
+            <div className="w-8 h-8 shrink-0">
+              <TrackArtwork
+                src={playlist.image}
+                alt={playlist.title}
+                className="!aspect-auto w-8 h-8 rounded"
+                size="sm"
+              />
+            </div>
             {playlist.title}
           </Link>
         </li>
