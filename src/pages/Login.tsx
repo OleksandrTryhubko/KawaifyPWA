@@ -4,6 +4,7 @@ import { auth } from "../lib/firebase";
 import { Link, useNavigate } from "react-router-dom";
 import { getFirebaseAuthErrorMessage } from "../utils/firebaseAuthErrors";
 import { useToast } from "../hooks/useToast";
+import Button from "../components/ui/Button";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -58,13 +59,14 @@ export default function Login() {
           className="w-full mb-4 px-4 py-2 rounded bg-zinc-800 text-white border border-zinc-700 focus:outline-none focus:border-pink-500/50 disabled:opacity-60"
         />
 
-        <button
+        <Button
           type="submit"
           disabled={loading}
-          className="w-full bg-purple-600 hover:bg-purple-700 disabled:opacity-60 disabled:cursor-not-allowed font-semibold py-2 px-4 rounded mb-4 transition"
+          fullWidth
+          size="lg"
         >
           {loading ? "Вхід…" : "Log In"}
-        </button>
+        </Button>
 
         <p className="text-center text-sm text-gray-400">
           Don&apos;t have an account?{" "}

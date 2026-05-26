@@ -25,3 +25,18 @@ export interface BasicAudioMetadata {
   size: number;
   durationSeconds?: number;
 }
+
+/** Firestore model (metadata only) prepared for local tracks */
+export interface LocalTrackMetadataDoc {
+  id: string;
+  title: string;
+  artist: string;
+  source: "local";
+  fileName: string;
+  mimeType: string;
+  size: number;
+  storagePath: string;
+  downloadUrl?: string;
+  createdAt?: unknown;
+  updatedAt?: unknown;
+}

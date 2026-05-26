@@ -11,6 +11,7 @@ import {
   isTrackInPlaylist,
 } from "../../utils/playlistHelpers";
 import type { Playlist } from "../../types/playlist";
+import Button from "../ui/Button";
 
 interface PlaylistModalProps {
   open: boolean;
@@ -193,14 +194,15 @@ const PlaylistModal = ({ open, onClose }: PlaylistModalProps) => {
             onChange={(e) => setNewTitle(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleCreate()}
           />
-          <button
+          <Button
             type="button"
             onClick={handleCreate}
             disabled={busy}
-            className="w-full bg-pink-500 hover:bg-pink-600 disabled:opacity-60 text-white rounded-lg p-2.5 font-medium transition"
+            variant="primary"
+            fullWidth
           >
             {busy ? "Збереження…" : "Створити і додати"}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

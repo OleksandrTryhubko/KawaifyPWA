@@ -1,12 +1,18 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import { useToast } from "../../hooks/useToast";
+import Button from "../../components/ui/Button";
+import { uploadUserAvatar } from "./accountService";
 
 export default function AccountPage() {
-  const { user, logout } = useAuth();
+  const { user, logout, refreshUser } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
+
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   const displayName = useMemo(() => {
     const name = user?.displayName?.trim();
@@ -21,6 +27,50 @@ export default function AccountPage() {
     await logout();
     toast.info("До зустрічі! ♪");
     navigate("/");
+  };
+
+  useEffect(() => {
+    if (!selectedFile) {
+      setPreviewUrl(null);
+      return;
+    }
+    const url = URL.createObjectURL(selectedFile);
+    setPreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [selectedFile]);
+
+  const handleFileChange = (file: File | null) => {
+    if (!file) return;
+
+    const allowed = ["image/png", "image/jpeg", "image/webp"];
+    if (!allowed.includes(file.type)) {
+      toast.error("Підтримуються PNG, JPG або WEBP");
+      return;
+    }
+
+    const maxBytes = 2 * 1024 * 1024;
+    if (file.size > maxBytes) {
+      toast.error("Файл завеликий (макс. 2 MB)");
+      return;
+    }
+
+    setSelectedFile(file);
+  };
+
+  const handleUploadAvatar = async () => {
+    if (!user || !selectedFile || uploading) return;
+
+    setUploading(true);
+    try {
+      await uploadUserAvatar(user.uid, selectedFile);
+      await refreshUser();
+      setSelectedFile(null);
+      toast.success("Аватар оновлено успішно ♪");
+    } catch {
+      toast.error("Не вдалося завантажити аватар. Спробуй ще раз.");
+    } finally {
+      setUploading(false);
+    }
   };
 
   if (!user) {
@@ -43,19 +93,30 @@ export default function AccountPage() {
 
   const playlistsCount = user.playlists?.length ?? 0;
   const favoritesCount = user.favorites?.length ?? 0;
+  const avatarSrc = previewUrl || user.avatar || "";
 
   return (
     <div className="p-6 text-white">
       <div className="max-w-2xl mx-auto">
         <div className="bg-zinc-900/80 border border-pink-500/20 rounded-xl p-6 sm:p-8">
           <div className="flex items-center gap-4">
-            <div
-              className="w-20 h-20 rounded-xl border border-pink-500/20 shadow-lg overflow-hidden flex items-center justify-center bg-gradient-to-br from-pink-500/20 to-purple-500/10"
-              aria-label="Аватар"
-            >
-              <span className="text-3xl" aria-hidden>
-                (≧◡≦)
-              </span>
+            <div className="w-20 h-20 rounded-xl border border-pink-500/20 shadow-lg overflow-hidden bg-gradient-to-br from-pink-500/20 to-purple-500/10">
+              {avatarSrc ? (
+                <img
+                  src={avatarSrc}
+                  alt="Avatar"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div
+                  className="w-full h-full flex items-center justify-center"
+                  aria-label="Аватар"
+                >
+                  <span className="text-3xl" aria-hidden>
+                    (≧◡≦)
+                  </span>
+                </div>
+              )}
             </div>
 
             <div className="min-w-0 flex-1">
@@ -65,6 +126,44 @@ export default function AccountPage() {
               <p className="text-zinc-300 text-sm truncate mt-1">
                 {user.email}
               </p>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <label className="inline-flex items-center">
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    className="hidden"
+                    onChange={(e) => handleFileChange(e.target.files?.[0] ?? null)}
+                    disabled={uploading}
+                  />
+                  <span className="text-xs px-3 py-1 rounded-full bg-zinc-900 border border-zinc-800 text-zinc-200 hover:bg-zinc-800/60 transition cursor-pointer">
+                    Upload avatar
+                  </span>
+                </label>
+
+                {selectedFile && (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    disabled={uploading}
+                    onClick={handleUploadAvatar}
+                  >
+                    {uploading ? "Uploading…" : "Save"}
+                  </Button>
+                )}
+
+                {selectedFile && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    disabled={uploading}
+                    onClick={() => setSelectedFile(null)}
+                  >
+                    Cancel
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
 
@@ -86,13 +185,9 @@ export default function AccountPage() {
           </div>
 
           <div className="mt-5 flex justify-end">
-            <button
-              type="button"
-              onClick={handleSignOut}
-              className="text-sm text-red-500 hover:text-red-700 transition"
-            >
+            <Button type="button" variant="danger" size="sm" onClick={handleSignOut}>
               Sign out
-            </button>
+            </Button>
           </div>
         </div>
 

@@ -23,7 +23,7 @@ export const useAuth = () => {
             uid: firebaseUser.uid,
             email: firebaseUser.email || "",
             displayName: data.displayName || "",
-            avatar: data.avatar || "",
+            avatar: data.avatarUrl || data.photoURL || data.avatar || "",
             favorites: data.favorites || [],
             playlists: (data.playlists || []) as Playlist[],
           });
@@ -53,7 +53,7 @@ export const useAuth = () => {
         uid: firebaseUser.uid,
         email: firebaseUser.email || "",
         displayName: data.displayName || "",
-        avatar: data.avatar || "",
+        avatar: data.avatarUrl || data.photoURL || data.avatar || "",
         favorites: data.favorites || [],
         playlists: (data.playlists || []) as Playlist[],
       });
