@@ -6,7 +6,11 @@ import { useAuth } from "../hooks/useAuth";
 import type { Playlist } from "../types/playlist";
 import TrackArtwork from "./common/TrackArtwork";
 
-const YourLibraryList = () => {
+interface YourLibraryListProps {
+  onNavigate?: () => void;
+}
+
+const YourLibraryList = ({ onNavigate }: YourLibraryListProps) => {
   const { user } = useAuth();
   const [favorites, setFavorites] = useState<string[]>([]);
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
@@ -26,20 +30,20 @@ const YourLibraryList = () => {
 
   if (!user) return null;
 
+  const linkClass =
+    "flex items-center gap-2 text-[var(--text-muted)] hover:text-[var(--text)] text-sm px-4 py-2 rounded-lg hover:bg-[var(--surface-soft)] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-400/50";
+
   return (
     <>
       {favorites.length > 0 && (
         <li>
-          <Link
-            to="/favorites"
-            className="flex items-center gap-2 text-zinc-300 hover:text-white text-sm px-5 py-2"
-          >
+          <Link to="/favorites" className={linkClass} onClick={onNavigate}>
             <img
               src="/favicon.ico"
               alt="Favorites"
-              className="w-8 h-8 object-cover rounded"
+              className="w-8 h-8 object-cover rounded shrink-0"
             />
-            ♥ Favorites
+            <span className="truncate">♥ Favorites</span>
           </Link>
         </li>
       )}
@@ -48,17 +52,18 @@ const YourLibraryList = () => {
         <li key={playlist.id}>
           <Link
             to={`/playlist/${playlist.id}`}
-            className="flex items-center gap-2 text-zinc-300 hover:text-white text-sm px-5 py-2"
+            className={linkClass}
+            onClick={onNavigate}
           >
-            <div className="w-8 h-8 shrink-0">
+            <div className="w-8 h-8 shrink-0 overflow-hidden rounded">
               <TrackArtwork
                 src={playlist.image}
                 alt={playlist.title}
-                className="!aspect-auto w-8 h-8 rounded"
+                className="!aspect-square w-8 h-8"
                 size="sm"
               />
             </div>
-            {playlist.title}
+            <span className="truncate">{playlist.title}</span>
           </Link>
         </li>
       ))}

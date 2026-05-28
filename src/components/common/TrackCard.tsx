@@ -1,0 +1,96 @@
+import clsx from "clsx";
+import TrackArtwork from "./TrackArtwork";
+import Button from "../ui/Button";
+
+interface TrackCardProps {
+  title: string;
+  artist?: string;
+  image?: string;
+  onPlay?: () => void;
+  onRemove?: () => void;
+  showPlayButton?: boolean;
+  className?: string;
+}
+
+export default function TrackCard({
+  title,
+  artist,
+  image,
+  onPlay,
+  onRemove,
+  showPlayButton = false,
+  className,
+}: TrackCardProps) {
+  return (
+    <article
+      className={clsx(
+        "kawaify-card group flex flex-col h-full p-3 transition",
+        "hover:border-pink-500/30 hover:shadow-md",
+        onPlay && "cursor-pointer",
+        className
+      )}
+      onClick={onPlay}
+      role={onPlay ? "button" : undefined}
+      tabIndex={onPlay ? 0 : undefined}
+      onKeyDown={
+        onPlay
+          ? (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onPlay();
+              }
+            }
+          : undefined
+      }
+    >
+      <div className="aspect-square w-full overflow-hidden rounded-lg shrink-0">
+        <TrackArtwork src={image} alt={title} className="!aspect-square h-full w-full" />
+      </div>
+
+      <div className="mt-3 flex flex-1 flex-col min-h-0">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0 flex-1">
+            <h3 className="text-sm font-semibold text-[var(--text)] line-clamp-2 leading-snug">
+              {title}
+            </h3>
+            {artist && (
+              <p className="text-xs text-[var(--text-muted)] truncate mt-0.5">{artist}</p>
+            )}
+          </div>
+          {onRemove && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="shrink-0 h-8 w-8 p-0 text-red-400 hover:text-red-300"
+              onClick={(e) => {
+                e.stopPropagation();
+                onRemove();
+              }}
+              aria-label="Remove track"
+            >
+              🗑
+            </Button>
+          )}
+        </div>
+
+        {onPlay && showPlayButton && (
+          <div className="mt-auto pt-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="text-pink-400 hover:text-pink-300 px-0"
+              onClick={(e) => {
+                e.stopPropagation();
+                onPlay();
+              }}
+            >
+              ▶ Play
+            </Button>
+          </div>
+        )}
+      </div>
+    </article>
+  );
+}

@@ -9,9 +9,12 @@ export const SUPPORTED_AUDIO_MIME_TYPES = [
   "audio/ogg",
   "audio/flac",
   "audio/x-flac",
+  "audio/mp4",
 ] as const;
 
 export const SUPPORTED_AUDIO_EXTENSIONS = [".mp3", ".wav", ".ogg", ".flac"] as const;
+export const MAX_LOCAL_TRACK_FILE_SIZE_BYTES = 25 * 1024 * 1024;
+export const MAX_LOCAL_TRACKS_TOTAL_BYTES = 200 * 1024 * 1024;
 
 export interface LocalFileValidationResult {
   valid: boolean;
@@ -29,6 +32,7 @@ export interface BasicAudioMetadata {
 /** Firestore model (metadata only) prepared for local tracks */
 export interface LocalTrackMetadataDoc {
   id: string;
+  userId: string;
   title: string;
   artist: string;
   source: "local";
@@ -36,7 +40,7 @@ export interface LocalTrackMetadataDoc {
   mimeType: string;
   size: number;
   storagePath: string;
-  downloadUrl?: string;
+  downloadUrl: string;
   createdAt?: unknown;
   updatedAt?: unknown;
 }

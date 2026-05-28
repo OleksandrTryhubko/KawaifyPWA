@@ -14,12 +14,12 @@ interface SongControlProps {
 
 export const CurrentSong = ({ image, title, artists }: CurrentSongProps) => {
   return (
-    <div className="flex items-center gap-5 relative overflow-hidden">
-      <div className="w-16 h-16 shrink-0">
+    <div className="flex items-center gap-3 sm:gap-4 relative overflow-hidden min-w-0">
+      <div className="w-12 h-12 sm:w-16 sm:h-16 shrink-0">
         <TrackArtwork
           src={image}
           alt={title}
-          className="!aspect-auto w-16 h-16 rounded-md"
+          className="!aspect-auto w-12 h-12 sm:w-16 sm:h-16 rounded-md"
           size="sm"
         />
       </div>
@@ -54,21 +54,21 @@ export const SongControl = ({ audio }: SongControlProps) => {
   const duration = audio?.current?.duration ?? 0;
 
   return (
-    <div className="flex gap-x-3 text-xs pt-2">
-      <span className="opacity-50 w-12 text-right">{formatTime(currentTime)}</span>
+    <div className="flex gap-x-2 sm:gap-x-3 text-xs pt-1 sm:pt-2 w-full max-w-full px-1">
+      <span className="opacity-50 w-9 sm:w-12 text-right shrink-0">{formatTime(currentTime)}</span>
 
       <Slider
         value={[currentTime]}
         max={audio?.current?.duration ?? 0}
         min={0}
-        className="w-[400px]"
+        className="flex-1 min-w-0 max-w-[400px]"
         onValueChange={(value) => {
           const [newCurrentTime] = value;
           if (audio.current) audio.current.currentTime = newCurrentTime;
         }}
       />
 
-      <span className="opacity-50 w-12">
+      <span className="opacity-50 w-9 sm:w-12 shrink-0">
         {duration ? formatTime(duration) : "0:00"}
       </span>
     </div>

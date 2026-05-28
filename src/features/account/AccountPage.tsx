@@ -4,11 +4,16 @@ import { useAuth } from "../../hooks/useAuth";
 import { useToast } from "../../hooks/useToast";
 import Button from "../../components/ui/Button";
 import { uploadUserAvatar } from "./accountService";
+import LocalMusicImport from "../local-music/LocalMusicImport";
+import AssistantPanel from "../assistant/AssistantPanel";
+import { usePlayerStore } from "../../store/playerStore";
+import type { Track } from "../../types/track";
 
 export default function AccountPage() {
   const { user, logout, refreshUser } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
+  const { setCurrentTrack, setIsPlaying } = usePlayerStore();
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -27,6 +32,15 @@ export default function AccountPage() {
     await logout();
     toast.info("До зустрічі! ♪");
     navigate("/");
+  };
+
+  const handlePlayLocalTrack = async (track: Track) => {
+    try {
+      await setCurrentTrack(track);
+      setIsPlaying(true);
+    } catch {
+      toast.error("Не вдалося запустити локальний трек");
+    }
   };
 
   useEffect(() => {
@@ -75,15 +89,15 @@ export default function AccountPage() {
 
   if (!user) {
     return (
-      <div className="p-6 text-white">
-        <div className="max-w-lg mx-auto bg-zinc-900/80 border border-pink-500/20 rounded-xl p-8 text-center">
+      <div className="kawaify-page">
+        <div className="max-w-lg mx-auto kawaify-card p-8 text-center">
           <span className="text-4xl" aria-hidden>
             🔒
           </span>
           <h1 className="text-2xl font-bold mt-4 bg-gradient-to-r from-pink-400 to-purple-400 bg-clip-text text-transparent">
             Потрібен вхід
           </h1>
-          <p className="text-zinc-400 text-sm mt-3">
+          <p className="kawaify-text-muted text-sm mt-3">
             Будь ласка, увійдіть, щоб подивитися свій акаунт.
           </p>
         </div>
@@ -96,9 +110,9 @@ export default function AccountPage() {
   const avatarSrc = previewUrl || user.avatar || "";
 
   return (
-    <div className="p-6 text-white">
-      <div className="max-w-2xl mx-auto">
-        <div className="bg-zinc-900/80 border border-pink-500/20 rounded-xl p-6 sm:p-8">
+    <div className="kawaify-page">
+      <div className="max-w-4xl mx-auto space-y-5">
+        <div className="kawaify-card p-6 sm:p-8">
           <div className="flex items-center gap-4">
             <div className="w-20 h-20 rounded-xl border border-pink-500/20 shadow-lg overflow-hidden bg-gradient-to-br from-pink-500/20 to-purple-500/10">
               {avatarSrc ? (
@@ -123,7 +137,7 @@ export default function AccountPage() {
               <h1 className="text-2xl font-bold bg-gradient-to-r from-pink-400 to-purple-400 bg-clip-text text-transparent">
                 {displayName}
               </h1>
-              <p className="text-zinc-300 text-sm truncate mt-1">
+              <p className="kawaify-text-muted text-sm truncate mt-1">
                 {user.email}
               </p>
               <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -135,7 +149,7 @@ export default function AccountPage() {
                     onChange={(e) => handleFileChange(e.target.files?.[0] ?? null)}
                     disabled={uploading}
                   />
-                  <span className="text-xs px-3 py-1 rounded-full bg-zinc-900 border border-zinc-800 text-zinc-200 hover:bg-zinc-800/60 transition cursor-pointer">
+                  <span className="text-xs px-3 py-1 rounded-full kawaify-surface border border-[var(--border)] text-[var(--text)] hover:opacity-90 transition cursor-pointer">
                     Upload avatar
                   </span>
                 </label>
@@ -168,16 +182,16 @@ export default function AccountPage() {
           </div>
 
           <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div className="bg-zinc-900 rounded-lg border border-zinc-800 p-4">
-              <div className="text-xs text-zinc-400">Playlists</div>
+            <div className="kawaify-surface rounded-lg border border-[var(--border)] p-4">
+              <div className="text-xs kawaify-text-muted">Playlists</div>
               <div className="text-xl font-bold mt-1">{playlistsCount}</div>
             </div>
-            <div className="bg-zinc-900 rounded-lg border border-zinc-800 p-4">
-              <div className="text-xs text-zinc-400">Favorites</div>
+            <div className="kawaify-surface rounded-lg border border-[var(--border)] p-4">
+              <div className="text-xs kawaify-text-muted">Favorites</div>
               <div className="text-xl font-bold mt-1">{favoritesCount}</div>
             </div>
-            <div className="bg-zinc-900 rounded-lg border border-zinc-800 p-4">
-              <div className="text-xs text-zinc-400">Listening time</div>
+            <div className="kawaify-surface rounded-lg border border-[var(--border)] p-4">
+              <div className="text-xs kawaify-text-muted">Listening time</div>
               <div className="text-xl font-bold mt-1 text-pink-200/90">
                 скоро
               </div>
@@ -191,24 +205,12 @@ export default function AccountPage() {
           </div>
         </div>
 
-        <div className="mt-5 bg-zinc-900/80 border border-purple-500/20 rounded-xl p-6">
-          <h2 className="text-lg font-semibold text-pink-200">
-            Coming soon
-          </h2>
-          <p className="text-sm text-zinc-400 mt-2">
-            AI assistant, local music, equalizer — у наступних оновленнях ♪
-          </p>
-          <div className="mt-4 flex flex-wrap gap-2">
-            <span className="px-3 py-1 rounded-full text-xs bg-zinc-900 border border-zinc-800 text-zinc-200">
-              AI assistant
-            </span>
-            <span className="px-3 py-1 rounded-full text-xs bg-zinc-900 border border-zinc-800 text-zinc-200">
-              Local music
-            </span>
-            <span className="px-3 py-1 rounded-full text-xs bg-zinc-900 border border-zinc-800 text-zinc-200">
-              Equalizer
-            </span>
-          </div>
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+          <LocalMusicImport
+            userId={user.uid}
+            onPlayTrack={handlePlayLocalTrack}
+          />
+          <AssistantPanel />
         </div>
       </div>
     </div>

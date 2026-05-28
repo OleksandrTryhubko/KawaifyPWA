@@ -8,6 +8,8 @@ import { useToast } from "../hooks/useToast";
 import type { Playlist } from "../types/playlist";
 import type { Track } from "../types/track";
 import TrackArtwork from "../components/common/TrackArtwork";
+import TrackCard from "../components/common/TrackCard";
+import Button from "../components/ui/Button";
 
 const PlaylistPage = () => {
   const { id } = useParams();
@@ -86,69 +88,50 @@ const PlaylistPage = () => {
 
   if (!playlist) {
     return (
-      <div className="p-6 text-white">
+      <div className="kawaify-page kawaify-text">
         <p className="text-lg">Playlist not found or not owned by you 😢</p>
       </div>
     );
   }
 
   return (
-    <div className="p-6 text-white">
-      <div className="flex items-center gap-4 mb-6">
-        <div className="w-28 h-28 shrink-0">
+    <div className="kawaify-page kawaify-text overflow-x-hidden">
+      <header className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-6">
+        <div className="w-28 h-28 shrink-0 overflow-hidden rounded-xl shadow-md">
           <TrackArtwork
             src={playlist.image}
             alt={playlist.title}
-            className="!aspect-auto w-28 h-28 rounded shadow"
+            className="!aspect-square w-full h-full"
           />
         </div>
-        <div className="flex flex-col gap-1">
-          <h1 className="text-3xl font-bold">{playlist.title}</h1>
-          <p className="text-sm text-zinc-400">{songs.length} трек(ів)</p>
-          <button
-            onClick={handleDeletePlaylist}
-            className="text-red-400 hover:underline text-sm"
-          >
+        <div className="flex flex-col gap-2 min-w-0 flex-1">
+          <h1 className="text-2xl sm:text-3xl font-bold truncate">{playlist.title}</h1>
+          <p className="text-sm kawaify-text-muted">{songs.length} трек(ів)</p>
+          <Button type="button" variant="danger" size="sm" onClick={handleDeletePlaylist}>
             🗑 Видалити плейлист
-          </button>
+          </Button>
         </div>
-      </div>
+      </header>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-        {songs.map((song) => (
-          <div
-            key={song.id}
-            className="bg-zinc-800 p-3 rounded-lg hover:bg-zinc-700 transition"
-          >
-            <TrackArtwork
-              src={song.image}
-              alt={song.title}
-              className="mb-2 h-40 !aspect-auto"
+      {songs.length === 0 ? (
+        <div className="kawaify-card p-6 text-center kawaify-text-muted">
+          У цьому плейлисті поки немає треків
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {songs.map((song) => (
+            <TrackCard
+              key={song.id}
+              title={song.title}
+              artist={song.artists?.join(", ")}
+              image={song.image}
+              onPlay={() => handlePlay(song)}
+              onRemove={() => handleRemoveTrack(song.id)}
+              showPlayButton
             />
-            <div className="flex justify-between items-start">
-              <div>
-                <div className="text-sm font-medium">{song.title}</div>
-                <div className="text-xs text-zinc-400">
-                  {song.artists?.join(", ")}
-                </div>
-              </div>
-              <button
-                onClick={() => handleRemoveTrack(song.id)}
-                className="text-xs text-red-400 hover:underline ml-2"
-              >
-                🗑
-              </button>
-            </div>
-
-            <button
-              onClick={() => handlePlay(song)}
-              className="mt-2 text-pink-400 hover:underline text-xs"
-            >
-              ▶ Play
-            </button>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

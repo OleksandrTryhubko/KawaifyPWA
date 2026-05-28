@@ -4,7 +4,7 @@ import { useAuth } from "../hooks/useAuth";
 import { db } from "../lib/firebase";
 import { usePlayerStore } from "../store/playerStore";
 import type { Track } from "../types/track";
-import TrackArtwork from "../components/common/TrackArtwork";
+import TrackCard from "../components/common/TrackCard";
 
 const FavoritesPage = () => {
   const { user } = useAuth();
@@ -32,30 +32,27 @@ const FavoritesPage = () => {
   };
 
   return (
-    <div className="p-6 text-white">
-      <h1 className="text-3xl font-bold mb-4">♥ Favorite songs</h1>
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-        {songs.map((song) => (
-          <div
-            key={song.id}
-            className="bg-zinc-800 p-3 rounded-lg hover:bg-zinc-700 transition"
-          >
-            <TrackArtwork
-              src={song.image}
-              alt={song.title}
-              className="mb-2 h-40 !aspect-auto"
+    <div className="kawaify-page kawaify-text overflow-x-hidden">
+      <h1 className="text-2xl sm:text-3xl font-bold mb-4">♥ Favorite songs</h1>
+
+      {songs.length === 0 ? (
+        <div className="kawaify-card p-6 text-center kawaify-text-muted">
+          У обраному поки немає треків
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {songs.map((song) => (
+            <TrackCard
+              key={song.id}
+              title={song.title}
+              artist={song.artists?.join(", ")}
+              image={song.image}
+              onPlay={() => handlePlay(song)}
+              showPlayButton
             />
-            <div className="text-sm font-medium">{song.title}</div>
-            <div className="text-xs text-zinc-400">{song.artists?.join(", ")}</div>
-            <button
-              onClick={() => handlePlay(song)}
-              className="mt-2 text-pink-400 hover:underline text-xs"
-            >
-              ▶ Play
-            </button>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

@@ -8,11 +8,37 @@ import {
   serverTimestamp,
   setDoc,
 } from "firebase/firestore";
-import { db } from "../../lib/firebase";
-import type { LocalTrackMetadataDoc } from "./types";
+import {
+  deleteObject,
+  getDownloadURL,
+  ref,
+  uploadBytes,
+} from "firebase/storage";
+import { db, storage } from "../../lib/firebase";
+import {
+  MAX_LOCAL_TRACK_FILE_SIZE_BYTES,
+  MAX_LOCAL_TRACKS_TOTAL_BYTES,
+  SUPPORTED_AUDIO_MIME_TYPES,
+  type LocalTrackMetadataDoc,
+} from "./types";
 
 function localTrackDocRef(userId: string, trackId: string) {
   return doc(db, "users", userId, "localTracks", trackId);
+}
+
+function toSafeFileName(fileName: string): string {
+  return fileName.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 120) || "audio-file";
+}
+
+function createTrackId(): string {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+  return `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function stripExtension(fileName: string): string {
+  return fileName.replace(/\.[^.]+$/, "").trim() || "Local Track";
 }
 
 export async function saveLocalTrackMetadata(
@@ -26,17 +52,6 @@ export async function saveLocalTrackMetadata(
   });
 }
 
-/**
- * Prepared for future flow where file upload happens separately.
- * For now, this only saves metadata (including expected Storage path).
- */
-export async function uploadLocalTrackMetadata(
-  userId: string,
-  track: Omit<LocalTrackMetadataDoc, "createdAt" | "updatedAt">
-): Promise<void> {
-  await saveLocalTrackMetadata(userId, track);
-}
-
 export async function getUserLocalTracks(
   userId: string
 ): Promise<LocalTrackMetadataDoc[]> {
@@ -46,6 +61,79 @@ export async function getUserLocalTracks(
   );
   const snap = await getDocs(q);
   return snap.docs.map((d) => d.data() as LocalTrackMetadataDoc);
+}
+
+export async function getUserLocalTracksTotalSize(userId: string): Promise<number> {
+  const tracks = await getUserLocalTracks(userId);
+  return tracks.reduce((sum, item) => sum + (item.size || 0), 0);
+}
+
+export async function uploadLocalTrack(
+  userId: string,
+  file: File
+): Promise<LocalTrackMetadataDoc> {
+  if (!userId) {
+    throw new Error("Потрібен вхід у акаунт");
+  }
+
+  const isAllowedType = SUPPORTED_AUDIO_MIME_TYPES.includes(
+    file.type as (typeof SUPPORTED_AUDIO_MIME_TYPES)[number]
+  );
+  if (!isAllowedType) {
+    throw new Error("Непідтримуваний тип аудіо файлу");
+  }
+
+  if (file.size > MAX_LOCAL_TRACK_FILE_SIZE_BYTES) {
+    throw new Error("Файл завеликий (макс. 25 MB)");
+  }
+
+  const totalBefore = await getUserLocalTracksTotalSize(userId);
+  if (totalBefore + file.size > MAX_LOCAL_TRACKS_TOTAL_BYTES) {
+    throw new Error("Перевищено ліміт локального сховища 200 MB");
+  }
+
+  const id = createTrackId();
+  const safeFileName = toSafeFileName(file.name);
+  const storagePath = `users/${userId}/local-tracks/${id}/${safeFileName}`;
+  const storageRef = ref(storage, storagePath);
+
+  await uploadBytes(storageRef, file, {
+    contentType: file.type,
+    cacheControl: "public,max-age=3600",
+  });
+  const downloadUrl = await getDownloadURL(storageRef);
+
+  const metadata: LocalTrackMetadataDoc = {
+    id,
+    userId,
+    title: stripExtension(file.name),
+    artist: "Local file",
+    source: "local",
+    fileName: file.name,
+    mimeType: file.type,
+    size: file.size,
+    storagePath,
+    downloadUrl,
+  };
+
+  await saveLocalTrackMetadata(userId, metadata);
+  return metadata;
+}
+
+export async function deleteLocalTrack(
+  userId: string,
+  trackId: string,
+  storagePath?: string
+): Promise<void> {
+  await deleteDoc(localTrackDocRef(userId, trackId));
+
+  if (storagePath) {
+    try {
+      await deleteObject(ref(storage, storagePath));
+    } catch {
+      // TODO: log to monitoring when enabled
+    }
+  }
 }
 
 export async function deleteLocalTrackMetadata(

@@ -8,10 +8,21 @@ import {
 import type { AudiusTrack } from "../../types/audius";
 import { usePlayerStore } from "../../store/playerStore";
 import Greeting from "../Greeting";
-import TrackArtwork from "../common/TrackArtwork";
+import TrackCard from "../common/TrackCard";
 import Button from "../ui/Button";
 
-const GENRES = ["lofi", "hip-hop", "pop", "rock", "dance", "ambient", "jazz", "chillwave"];
+const GENRES = [
+  "lofi",
+  "hip-hop",
+  "pop",
+  "rock",
+  "dance",
+  "ambient",
+  "jazz",
+  "chillwave",
+  "phonk",
+  "electronic",
+];
 
 const genreColors: Record<string, string> = {
   lofi: "from-pink-600 to-pink-500",
@@ -22,6 +33,8 @@ const genreColors: Record<string, string> = {
   ambient: "from-zinc-600 to-zinc-500",
   jazz: "from-yellow-600 to-amber-500",
   chillwave: "from-blue-500 to-cyan-400",
+  phonk: "from-fuchsia-600 to-indigo-600",
+  electronic: "from-violet-600 to-sky-500",
 };
 
 const MainSection = () => {
@@ -91,44 +104,40 @@ const MainSection = () => {
   return (
     <div
       id="playlist-container"
-      className="relative transition-all duration-1000 bg-pink-400 rounded-lg overflow-hidden"
+      className="home-shell relative transition-all duration-300 rounded-lg overflow-hidden"
     >
-      <div className="relative z-10 px-6 pt-10">
+      <div className="relative z-10 px-4 sm:px-6 pt-6 sm:pt-10 pb-6">
         <Greeting />
 
-        <div className="mt-6 mb-5 flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
-          <div className="flex-1">
-            <div className="bg-zinc-900/70 border border-pink-500/10 rounded-xl px-4 py-3 shadow-md">
+        <div className="mt-5 mb-5 flex flex-col sm:flex-row gap-2 items-stretch">
+          <div className="flex-1 min-w-0">
+            <div className="kawaify-input h-11 px-4 shadow-sm flex items-center">
               <input
                 value={searchText}
-                onChange={(e) => {
-                  setSearchText(e.target.value);
-                  if (e.target.value.trim().length > 0 && e.target.value.trim() !== activePreset) {
-                    // keep preset as a quick label; search drives the query
-                  }
-                }}
+                onChange={(e) => setSearchText(e.target.value)}
                 placeholder="Search tracks…"
-                className="w-full bg-transparent outline-none text-white placeholder:text-zinc-400"
+                className="w-full bg-transparent outline-none text-[var(--text)] placeholder:text-[var(--text-muted)]"
               />
             </div>
-            <p className="text-xs text-white/70 mt-2">
+            <p className="text-xs text-white/70 mt-2 hidden sm:block">
               Genre buttons — швидкі preset-запити. Пошук — текстом, з debounce.
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="sm:w-[108px]">
             <Button
               type="button"
               variant="secondary"
               size="md"
               onClick={() => setSearchText("")}
               disabled={isLoading || searchText.length === 0}
+              fullWidth
             >
               Clear
             </Button>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-3 mb-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
           {GENRES.map((g) => (
             <Button
               key={g}
@@ -148,47 +157,38 @@ const MainSection = () => {
         </div>
 
         {loadError && (
-          <div className="mb-4 bg-zinc-900/70 border border-red-500/20 rounded-xl p-4">
-            <p className="text-red-200 text-sm">{loadError}</p>
+          <div className="mb-4 home-notice home-notice-error rounded-xl p-4">
+            <p className="text-sm">{loadError}</p>
           </div>
         )}
 
         {isLoading && (
-          <p className="text-white/80 text-sm mb-4">Loading…</p>
+          <p className="text-sm mb-4 kawaify-text-muted">Loading…</p>
         )}
 
         {!isLoading && !loadError && tracks.length === 0 && (
-          <div className="mb-4 bg-zinc-900/70 border border-purple-500/20 rounded-xl p-5">
-            <p className="text-pink-200 font-semibold">Нічого не знайдено</p>
-            <p className="text-zinc-400 text-sm mt-1">
+          <div className="mb-4 home-notice rounded-xl p-5">
+            <p className="font-semibold text-[var(--text)]">Нічого не знайдено</p>
+            <p className="text-sm mt-1 kawaify-text-muted">
               Спробуй інший запит або вибери жанр.
             </p>
           </div>
         )}
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 pb-2">
           {tracks.map((track) => (
-            <div
+            <TrackCard
               key={track.id}
-              className="group bg-zinc-800/60 hover:bg-zinc-800 transition p-3 rounded-xl shadow-lg cursor-pointer border border-white/5 hover:border-pink-500/20"
-              onClick={() => handlePlay(track)}
-            >
-              <TrackArtwork
-                src={getAudiusArtworkUrl(track.artwork)}
-                alt={`Cover of ${track.title}`}
-              />
-              <div className="mt-2 text-white text-sm font-semibold truncate">
-                {track.title}
-              </div>
-              <div className="text-xs text-gray-400 truncate">
-                {track.user.name}
-              </div>
-            </div>
+              title={track.title}
+              artist={track.user.name}
+              image={getAudiusArtworkUrl(track.artwork)}
+              onPlay={() => handlePlay(track)}
+            />
           ))}
         </div>
       </div>
 
-      <div className="absolute inset-0 rounded-lg bg-gradient-to-t from-zinc-900 via-purple-900/80 to-transparent z-0" />
+      <div className="home-shell-overlay absolute inset-0 rounded-lg z-0" />
     </div>
   );
 };
