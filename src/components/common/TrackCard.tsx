@@ -44,8 +44,22 @@ export default function TrackCard({
           : undefined
       }
     >
-      <div className="aspect-square w-full overflow-hidden rounded-lg shrink-0">
-        <TrackArtwork src={image} alt={title} className="!aspect-square h-full w-full" />
+      <div className="aspect-square w-full overflow-hidden rounded-lg shrink-0 relative">
+        <TrackArtwork
+          src={image}
+          alt={title}
+          className="!aspect-square h-full w-full transition-transform duration-300 group-hover:scale-105"
+        />
+        {onPlay && !showPlayButton && (
+          <div
+            className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-lg"
+            aria-hidden
+          >
+            <span className="w-10 h-10 rounded-full bg-pink-500/90 flex items-center justify-center text-white text-sm shadow-lg">
+              ▶
+            </span>
+          </div>
+        )}
       </div>
 
       <div className="mt-3 flex flex-1 flex-col min-h-0">

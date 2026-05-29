@@ -144,6 +144,111 @@ body {
   animation: toast-in 0.35s ease-out;
 }
 
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slide-in-right {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes artwork-in {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.25s ease-out;
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 0.3s ease-out;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.25s ease-out;
+}
+
+.animate-artwork-in {
+  animation: artwork-in 0.35s ease-out;
+}
+
+.recently-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--accent) 40%, transparent) transparent;
+}
+
+.recently-scroll::-webkit-scrollbar {
+  height: 4px;
+}
+
+.recently-scroll::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--accent) 50%, transparent);
+  border-radius: 4px;
+}
+
+.player-progress-slider [data-radix-slider-track] {
+  height: 4px;
+}
+
+.player-progress-slider [data-radix-slider-range] {
+  background: linear-gradient(90deg, #ec4899, #a855f7);
+  transition: width 0.1s linear;
+}
+
+.eq-vertical-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.eq-vertical-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ec4899, #a855f7);
+  box-shadow: 0 0 6px rgba(236, 72, 153, 0.5);
+}
+
+.eq-vertical-slider::-webkit-slider-runnable-track {
+  width: 4px;
+  background: var(--surface-soft);
+  border-radius: 2px;
+}
+
+.player-shell {
+  min-height: 88px;
+}
+
 @font-face {
   font-family: "CircularStd";
   src: url("/fonts/CircularStd-Medium.woff2") format("woff2");

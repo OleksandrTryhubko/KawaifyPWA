@@ -3,7 +3,7 @@ import { Trash2 } from "lucide-react";
 import { doc, getDoc } from "firebase/firestore";
 import { useAuth } from "../hooks/useAuth";
 import { db } from "../lib/firebase";
-import { usePlayerStore } from "../store/playerStore";
+import { playTracksFromList } from "../store/playerStore";
 import { toggleFavoriteTrack } from "../services/userService";
 import { useToast } from "../hooks/useToast";
 import type { Track } from "../types/track";
@@ -20,7 +20,6 @@ const FavoritesPage = () => {
   const [sort, setSort] = useState<FavSort>("name-asc");
   const [removeTarget, setRemoveTarget] = useState<Track | null>(null);
   const [busy, setBusy] = useState(false);
-  const { setCurrentTrack, setIsPlaying } = usePlayerStore();
   const toast = useToast();
 
   useEffect(() => {
@@ -47,8 +46,7 @@ const FavoritesPage = () => {
   }, [songs, sort]);
 
   const handlePlay = (song: Track) => {
-    setCurrentTrack(song);
-    setIsPlaying(true);
+    playTracksFromList(sortedSongs, song);
   };
 
   const confirmRemove = async () => {
@@ -112,7 +110,6 @@ const FavoritesPage = () => {
                 artist={song.artists?.join(", ")}
                 image={song.image}
                 onPlay={() => handlePlay(song)}
-                showPlayButton
               />
               <div className="absolute top-2 right-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition">
                 <Button

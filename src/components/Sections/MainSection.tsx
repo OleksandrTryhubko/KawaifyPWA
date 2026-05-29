@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Search, X } from "lucide-react";
 import {
   fetchAudiusTracks,
@@ -14,6 +14,7 @@ import TrackCard from "../common/TrackCard";
 import Button from "../ui/Button";
 import RecentlyPlayedSection from "../home/RecentlyPlayedSection";
 import { sortByKey, type SortDirection } from "../../utils/sortHelpers";
+import { fetchRandomRecommendations } from "../../utils/audiusRecommendations";
 
 const GENRES = [
   "lofi",
@@ -53,54 +54,80 @@ type FilterField = "all" | "title" | "artist" | "genre";
 const MainSection = () => {
   const { user } = useAuth();
   const [tracks, setTracks] = useState<AudiusTrack[]>([]);
-  const [activePreset, setActivePreset] = useState<string>("lofi");
+  const [shownIds, setShownIds] = useState<string[]>([]);
+  const [activePreset, setActivePreset] = useState<string>("");
   const [searchText, setSearchText] = useState("");
   const [debounced, setDebounced] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [searchSort, setSearchSort] = useState<SearchSort>("relevance");
   const [filterField, setFilterField] = useState<FilterField>("all");
-  const { setCurrentTrack, setIsPlaying } = usePlayerStore();
+  const { playTrack } = usePlayerStore();
+
+  const isSearchMode = debounced.length > 0;
 
   useEffect(() => {
     const t = setTimeout(() => setDebounced(searchText.trim()), 350);
     return () => clearTimeout(t);
   }, [searchText]);
 
-  const effectiveQuery = useMemo(() => {
-    if (debounced.length > 0) return debounced;
-    return activePreset || "lofi";
-  }, [debounced, activePreset]);
-
-  useEffect(() => {
-    let cancelled = false;
-
+  const loadRecommendations = useCallback(async () => {
     setLoadError(null);
     setIsLoading(true);
+    try {
+      const res = await fetchRandomRecommendations(24);
+      setTracks(res);
+      setShownIds(res.map((t) => t.id));
+    } catch {
+      setTracks([]);
+      setLoadError("Audius недоступний. Спробуй ще раз трохи пізніше.");
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
-    fetchAudiusTracks(effectiveQuery, 48)
-      .then((res) => {
-        if (cancelled) return;
-        setTracks(res);
-      })
-      .catch(() => {
-        if (cancelled) return;
-        setTracks([]);
-        setLoadError("Audius недоступний. Спробуй ще раз трохи пізніше.");
-      })
-      .finally(() => {
-        if (cancelled) return;
-        setIsLoading(false);
-      });
+  const loadSearch = useCallback(async (query: string) => {
+    setLoadError(null);
+    setIsLoading(true);
+    try {
+      const res = await fetchAudiusTracks(query, 48);
+      setTracks(res);
+      setShownIds(res.map((t) => t.id));
+    } catch {
+      setTracks([]);
+      setLoadError("Audius недоступний. Спробуй ще раз трохи пізніше.");
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
-    return () => {
-      cancelled = true;
-    };
-  }, [effectiveQuery]);
+  useEffect(() => {
+    if (isSearchMode) {
+      loadSearch(debounced);
+    } else {
+      loadRecommendations();
+    }
+  }, [debounced, isSearchMode, loadRecommendations, loadSearch]);
+
+  const loadMore = async () => {
+    setIsLoadingMore(true);
+    try {
+      const more = await fetchRandomRecommendations(20, shownIds);
+      if (more.length > 0) {
+        setTracks((prev) => [...prev, ...more]);
+        setShownIds((prev) => [...prev, ...more.map((t) => t.id)]);
+      }
+    } catch {
+      /* ignore */
+    } finally {
+      setIsLoadingMore(false);
+    }
+  };
 
   const filteredTracks = useMemo(() => {
     const q = debounced.toLowerCase();
-    if (!q) return tracks;
+    if (!q || !isSearchMode) return tracks;
 
     return tracks.filter((track) => {
       const title = track.title.toLowerCase();
@@ -112,29 +139,28 @@ const MainSection = () => {
       if (filterField === "genre") return genre.includes(q);
       return title.includes(q) || artist.includes(q) || genre.includes(q);
     });
-  }, [tracks, debounced, filterField]);
+  }, [tracks, debounced, filterField, isSearchMode]);
 
   const displayTracks = useMemo(() => {
-    if (searchSort === "relevance") return filteredTracks;
+    if (searchSort === "relevance" || !isSearchMode) return filteredTracks;
     const dir: SortDirection = searchSort.endsWith("desc") ? "desc" : "asc";
     if (searchSort.startsWith("artist")) {
       return sortByKey(filteredTracks, (t) => t.user?.name ?? "", dir);
     }
     return sortByKey(filteredTracks, (t) => t.title, dir);
-  }, [filteredTracks, searchSort]);
+  }, [filteredTracks, searchSort, isSearchMode]);
 
   const handlePlay = (track: AudiusTrack) => {
-    setCurrentTrack({
+    void playTrack({
       id: track.id,
       title: track.title,
       artists: [track.user.name],
-      genre: debounced && debounced !== activePreset ? "" : activePreset,
+      genre: track.genre ?? activePreset,
       duration: formatAudiusDuration(track.duration),
       image: getAudiusArtworkUrl(track.artwork),
       streamUrl: getAudiusStreamUrl(track.id),
       source: "audius",
     });
-    setIsPlaying(true);
   };
 
   const handlePresetClick = (preset: string) => {
@@ -145,6 +171,7 @@ const MainSection = () => {
 
   const clearSearch = () => {
     setSearchText("");
+    setActivePreset("");
     setFilterField("all");
     setSearchSort("relevance");
   };
@@ -170,7 +197,7 @@ const MainSection = () => {
                 <input
                   value={searchText}
                   onChange={(e) => setSearchText(e.target.value)}
-                  placeholder="Search tracks, artists…"
+                  placeholder="Search tracks, artists, genres…"
                   className="w-full bg-transparent outline-none text-[var(--text)] placeholder:text-[var(--text-muted)]"
                   aria-label="Search tracks"
                 />
@@ -189,51 +216,60 @@ const MainSection = () => {
             </Button>
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            <select
-              value={filterField}
-              onChange={(e) => setFilterField(e.target.value as FilterField)}
-              className="kawaify-input h-9 px-2 text-xs flex-1 min-w-[120px] sm:flex-none sm:w-auto"
-              aria-label="Filter by"
-            >
-              <option value="all">All fields</option>
-              <option value="title">Track name</option>
-              <option value="artist">Artist</option>
-              <option value="genre">Genre</option>
-            </select>
-            <select
-              value={searchSort}
-              onChange={(e) => setSearchSort(e.target.value as SearchSort)}
-              className="kawaify-input h-9 px-2 text-xs flex-1 min-w-[120px] sm:flex-none sm:w-auto"
-              aria-label="Sort results"
-            >
-              <option value="relevance">Relevance</option>
-              <option value="name-asc">Name A-Z</option>
-              <option value="name-desc">Name Z-A</option>
-              <option value="artist-asc">Artist A-Z</option>
-              <option value="artist-desc">Artist Z-A</option>
-            </select>
-          </div>
+          {isSearchMode && (
+            <div className="flex flex-wrap gap-2 animate-fade-in">
+              <select
+                value={filterField}
+                onChange={(e) => setFilterField(e.target.value as FilterField)}
+                className="kawaify-input h-9 px-2 text-xs flex-1 min-w-[120px] sm:flex-none sm:w-auto"
+                aria-label="Filter by"
+              >
+                <option value="all">All fields</option>
+                <option value="title">Track name</option>
+                <option value="artist">Artist</option>
+                <option value="genre">Genre</option>
+              </select>
+              <select
+                value={searchSort}
+                onChange={(e) => setSearchSort(e.target.value as SearchSort)}
+                className="kawaify-input h-9 px-2 text-xs flex-1 min-w-[120px] sm:flex-none sm:w-auto"
+                aria-label="Sort results"
+              >
+                <option value="relevance">Relevance</option>
+                <option value="name-asc">Name A-Z</option>
+                <option value="name-desc">Name Z-A</option>
+                <option value="artist-asc">Artist A-Z</option>
+                <option value="artist-desc">Artist Z-A</option>
+              </select>
+            </div>
+          )}
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
-          {GENRES.map((g) => (
-            <Button
-              key={g}
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => handlePresetClick(g)}
-              className={`h-11 w-full rounded-lg font-semibold capitalize
-                bg-gradient-to-r ${genreColors[g] || "from-zinc-700 to-zinc-600"}
-                border border-white/10 shadow-md
-                ${g === activePreset ? "opacity-100 scale-[1.02]" : "opacity-80 hover:opacity-100"}
-              `}
-            >
-              {g}
-            </Button>
-          ))}
-        </div>
+        {!isSearchMode && (
+          <>
+            <p className="text-xs kawaify-text-muted mb-3">
+              Рекомендації для тебе — випадковий підбір популярних треків
+            </p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
+              {GENRES.map((g) => (
+                <Button
+                  key={g}
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handlePresetClick(g)}
+                  className={`h-11 w-full rounded-lg font-semibold capitalize
+                    bg-gradient-to-r ${genreColors[g] || "from-zinc-700 to-zinc-600"}
+                    border border-white/10 shadow-md
+                    ${g === activePreset ? "opacity-100 scale-[1.02]" : "opacity-80 hover:opacity-100"}
+                  `}
+                >
+                  {g}
+                </Button>
+              ))}
+            </div>
+          </>
+        )}
 
         {loadError && (
           <div className="mb-4 home-notice home-notice-error rounded-xl p-4">
@@ -242,11 +278,11 @@ const MainSection = () => {
         )}
 
         {isLoading && (
-          <div className="mb-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {Array.from({ length: 4 }).map((_, i) => (
+          <div className="mb-4 grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3">
+            {Array.from({ length: 10 }).map((_, i) => (
               <div
                 key={i}
-                className="kawaify-card h-40 animate-pulse bg-[var(--surface-soft)]/50"
+                className="kawaify-card aspect-[3/4] animate-pulse bg-[var(--surface-soft)]/50"
               />
             ))}
           </div>
@@ -256,12 +292,12 @@ const MainSection = () => {
           <div className="mb-4 home-notice rounded-xl p-5">
             <p className="font-semibold text-[var(--text)]">Нічого не знайдено</p>
             <p className="text-sm mt-1 kawaify-text-muted">
-              Спробуй інший запит, фільтр або вибери жанр.
+              Спробуй інший запит, фільтр або жанр.
             </p>
           </div>
         )}
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 pb-2">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 pb-2">
           {!isLoading &&
             displayTracks.map((track) => (
               <TrackCard
@@ -270,10 +306,35 @@ const MainSection = () => {
                 artist={track.user.name}
                 image={getAudiusArtworkUrl(track.artwork)}
                 onPlay={() => handlePlay(track)}
-                showPlayButton
               />
             ))}
         </div>
+
+        {!isSearchMode && !isLoading && displayTracks.length > 0 && (
+          <div className="flex justify-center mt-6">
+            <Button
+              type="button"
+              variant="secondary"
+              size="md"
+              onClick={loadMore}
+              disabled={isLoadingMore}
+              className="min-w-[160px]"
+            >
+              {isLoadingMore ? "Завантаження…" : "Завантажити ще"}
+            </Button>
+          </div>
+        )}
+
+        {isLoadingMore && (
+          <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div
+                key={i}
+                className="kawaify-card aspect-[3/4] animate-pulse bg-[var(--surface-soft)]/50"
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="home-shell-overlay absolute inset-0 rounded-lg z-0" />

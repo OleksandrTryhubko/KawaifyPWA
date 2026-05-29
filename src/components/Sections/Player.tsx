@@ -1,85 +1,78 @@
-import { useEffect, useRef } from "react";
 import { usePlayerStore } from "../../store/playerStore";
-import { Play } from "../Player/Play";
-import { Pause } from "../Player/Pause";
-import { VolumeControl } from "../Player/Volume";
-import { CurrentSong, SongControl } from "../Player/Song";
-import FavoriteButton from "../Player/FavoriteButton";
-import AddToPlaylistButton from "../Player/AddToPlaylistButton";
+import { useAudioEngine } from "../../hooks/useAudioEngine";
 import { useListeningTracker } from "../../hooks/useListeningTracker";
 import { useRecordRecentlyPlayed } from "../../hooks/useRecordRecentlyPlayed";
+import { CurrentSong } from "../Player/Song";
+import PlayerControls from "../Player/PlayerControls";
+import ProgressBar from "../Player/ProgressBar";
+import VolumePanel from "../Player/VolumePanel";
+import AbRepeatControl from "../Player/AbRepeatControl";
+import QueuePanel from "../Player/QueuePanel";
+import EqualizerModal from "../../features/audio-tools/EqualizerModal";
+import FavoriteButton from "../Player/FavoriteButton";
+import AddToPlaylistButton from "../Player/AddToPlaylistButton";
 
 const Player = () => {
   useListeningTracker();
   useRecordRecentlyPlayed();
-  const { currentTrack, isPlaying, setIsPlaying, volume } = usePlayerStore((state) => ({
+
+  const { audioRef } = useAudioEngine();
+
+  const { currentTrack, togglePlayPause } = usePlayerStore((state) => ({
     currentTrack: state.currentTrack,
-    isPlaying: state.isPlaying,
-    setIsPlaying: state.setIsPlaying,
-    volume: state.volume,
+    togglePlayPause: state.togglePlayPause,
   }));
 
-  const audioRef = useRef<HTMLAudioElement>(new Audio());
-
-  useEffect(() => {
-    if (!audioRef.current.src) return;
-    isPlaying ? audioRef.current.play().catch(console.error) : audioRef.current.pause();
-  }, [isPlaying]);
-
-  useEffect(() => {
-    audioRef.current.volume = volume;
-  }, [volume]);
-
-  useEffect(() => {
-    if (!currentTrack) return;
-
-    audioRef.current.src = currentTrack.streamUrl;
-    audioRef.current.load();
-    if (isPlaying) {
-      audioRef.current.play().catch(console.error);
-    }
-  }, [currentTrack]);
-
-  const handleClick = () => {
-    setIsPlaying(!isPlaying);
-  };
+  const hasTrack = Boolean(currentTrack);
 
   return (
-    <div className="flex flex-col sm:flex-row items-center justify-between w-full px-2 sm:px-4 py-2 gap-2 sm:gap-3 max-w-[100vw]">
-      <div className="w-full sm:w-auto sm:min-w-[140px] sm:max-w-[220px] shrink-0 order-1 sm:order-none">
-        {currentTrack ? (
-          <CurrentSong {...currentTrack} />
-        ) : (
-          <div className="h-12 sm:h-16 flex items-center text-xs kawaify-text-muted px-1">
-            No track selected
+    <>
+      <div className="player-shell flex flex-col w-full max-w-[100vw] px-2 sm:px-4 py-2 gap-2">
+        {hasTrack && (
+          <div className="w-full px-1">
+            <ProgressBar audio={audioRef} />
           </div>
         )}
-      </div>
 
-      <div className="flex flex-col items-center flex-1 gap-1 sm:gap-2 w-full min-w-0 order-3 sm:order-none">
-        <div className="flex items-center gap-3 sm:gap-4">
-          <FavoriteButton />
-          <button
-            type="button"
-            className={`bg-white rounded-full p-2 shrink-0 focus-visible:ring-2 focus-visible:ring-pink-400/50 ${
-              currentTrack ? "" : "opacity-50 pointer-events-none"
-            }`}
-            onClick={handleClick}
-            aria-label={isPlaying ? "Pause" : "Play"}
-          >
-            {isPlaying ? <Pause className="w-5 h-5 sm:w-6 sm:h-6" /> : <Play className="w-5 h-5 sm:w-6 sm:h-6" />}
-          </button>
-          <AddToPlaylistButton />
+        <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 lg:gap-4">
+          {/* Left: artwork + meta */}
+          <div className="flex items-center gap-3 min-w-0 lg:w-[28%] lg:max-w-[320px] shrink-0 order-1">
+            {hasTrack ? (
+              <CurrentSong {...currentTrack!} large />
+            ) : (
+              <div className="h-14 flex items-center text-xs kawaify-text-muted px-1">
+                Оберіть трек для відтворення
+              </div>
+            )}
+          </div>
+
+          {/* Center: controls */}
+          <div className="flex flex-col items-center flex-1 gap-1.5 min-w-0 order-3 lg:order-2">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <FavoriteButton />
+              <PlayerControls
+                onTogglePlay={togglePlayPause}
+                disabled={!hasTrack}
+              />
+              <AddToPlaylistButton />
+            </div>
+            {hasTrack && (
+              <div className="hidden sm:flex">
+                <AbRepeatControl audio={audioRef} />
+              </div>
+            )}
+          </div>
+
+          {/* Right: volume */}
+          <div className="flex items-center justify-end lg:w-[22%] order-2 lg:order-3 shrink-0">
+            <VolumePanel />
+          </div>
         </div>
-
-        {currentTrack && <SongControl audio={audioRef} />}
-        <audio ref={audioRef} />
       </div>
 
-      <div className="hidden md:grid place-content-center order-2 sm:order-none shrink-0">
-        <VolumeControl />
-      </div>
-    </div>
+      <QueuePanel />
+      <EqualizerModal />
+    </>
   );
 };
 

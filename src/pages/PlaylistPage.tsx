@@ -4,7 +4,7 @@ import { doc, getDoc } from "firebase/firestore";
 import { Shuffle, Play, Trash2 } from "lucide-react";
 import { db } from "../lib/firebase";
 import { useAuth } from "../hooks/useAuth";
-import { usePlayerStore } from "../store/playerStore";
+import { playTracksFromList, usePlayerStore } from "../store/playerStore";
 import { useToast } from "../hooks/useToast";
 import { updateUserPlaylists } from "../services/userService";
 import type { Playlist } from "../types/playlist";
@@ -27,7 +27,7 @@ const PlaylistPage = () => {
   const [confirmDeletePlaylist, setConfirmDeletePlaylist] = useState(false);
   const [removeTrackTarget, setRemoveTrackTarget] = useState<Track | null>(null);
   const [busy, setBusy] = useState(false);
-  const { setCurrentTrack, setIsPlaying } = usePlayerStore();
+  const shuffleEnabled = usePlayerStore((s) => s.shuffleEnabled);
 
   useEffect(() => {
     if (!user || !id) return;
@@ -67,14 +67,13 @@ const PlaylistPage = () => {
   const coverSrc = playlist?.coverUrl || playlist?.image;
 
   const playTrack = (song: Track) => {
-    setCurrentTrack(song);
-    setIsPlaying(true);
+    playTracksFromList(sortedSongs, song, shuffleEnabled);
   };
 
   const playAll = (shuffle = false) => {
     if (sortedSongs.length === 0) return;
-    const list = shuffle ? [...sortedSongs].sort(() => Math.random() - 0.5) : sortedSongs;
-    playTrack(list[0]);
+    const first = sortedSongs[0];
+    playTracksFromList(sortedSongs, first, shuffle);
     toast.info(shuffle ? "Shuffle play started ♪" : "Play All started ♪");
   };
 
@@ -245,7 +244,6 @@ const PlaylistPage = () => {
               artist={song.artists?.join(", ")}
               image={song.image}
               onPlay={() => playTrack(song)}
-              showPlayButton
               onRemove={() => setRemoveTrackTarget(song)}
             />
           ))}
