@@ -6,9 +6,10 @@ import { useAuth } from "../../hooks/useAuth";
 import Button from "../../components/ui/Button";
 
 const QUICK_CHIPS = [
-  "Find chill music",
-  "Create playlist",
-  "Explain mood",
+  "Find music by mood",
+  "Recommend similar artists",
+  "Explain genre",
+  "Create playlist idea",
 ] as const;
 
 const AUTH_ROUTES = ["/login", "/register"];

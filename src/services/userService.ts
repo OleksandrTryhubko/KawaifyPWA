@@ -84,6 +84,16 @@ export const toggleFavoriteTrack = async (
 
 export type AddPlaylistResult = "created" | "duplicate_name" | "error";
 
+export const updateUserPlaylists = async (
+  userId: string,
+  playlists: Playlist[]
+): Promise<void> => {
+  await updateDoc(doc(db, "users", userId), {
+    playlists,
+    updatedAt: serverTimestamp(),
+  });
+};
+
 export const addUserPlaylist = async (
   userId: string,
   playlist: Playlist

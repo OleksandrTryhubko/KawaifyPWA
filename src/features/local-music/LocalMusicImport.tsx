@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { Link } from "react-router-dom";
 import Button from "../../components/ui/Button";
+import ConfirmDialog from "../../components/ui/ConfirmDialog";
+import StorageProgressBar from "../../components/ui/StorageProgressBar";
 import { useToast } from "../../hooks/useToast";
 import type { Track } from "../../types/track";
+import { sortByKey, sortByNumber, type SortDirection } from "../../utils/sortHelpers";
 import {
   MAX_LOCAL_TRACKS_TOTAL_BYTES,
   type LocalTrackMetadataDoc,
@@ -12,7 +15,9 @@ import {
   getUserLocalTracks,
   getUserLocalTracksTotalSize,
   uploadLocalTrack,
+  uploadLocalTrackCover,
 } from "./localTracksMetadataService";
+import LocalTrackCard, { toPlayableLocalTrack } from "./LocalTrackCard";
 
 interface LocalMusicImportProps {
   userId: string;
@@ -23,6 +28,8 @@ interface LocalMusicImportProps {
   detailedList?: boolean;
   onUploaded?: () => void;
 }
+
+type SortField = "title" | "date" | "size";
 
 const ALLOWED_ACCEPT =
   "audio/mpeg,audio/wav,audio/ogg,audio/flac,audio/mp4";
@@ -44,20 +51,18 @@ function formatCreatedAt(value: unknown): string {
   return "—";
 }
 
-function toPlayableTrack(item: LocalTrackMetadataDoc): Track {
-  return {
-    id: item.id,
-    title: item.title,
-    artists: [item.artist || "Local file"],
-    duration: "0:00",
-    image: "",
-    streamUrl: item.downloadUrl,
-    source: "local",
-    storagePath: item.storagePath,
-    fileName: item.fileName,
-    mimeType: item.mimeType,
-    size: item.size,
-  };
+function toMillis(value: unknown): number {
+  if (!value) return 0;
+  if (typeof value === "number") return value;
+  if (
+    typeof value === "object" &&
+    value !== null &&
+    "toDate" in value &&
+    typeof (value as { toDate: () => Date }).toDate === "function"
+  ) {
+    return (value as { toDate: () => Date }).toDate().getTime();
+  }
+  return 0;
 }
 
 export default function LocalMusicImport({
@@ -75,11 +80,19 @@ export default function LocalMusicImport({
   const [usedBytes, setUsedBytes] = useState(0);
   const [uploading, setUploading] = useState(false);
   const [busyTrackId, setBusyTrackId] = useState<string | null>(null);
+  const [sortField, setSortField] = useState<SortField>("date");
+  const [sortDir, setSortDir] = useState<SortDirection>("desc");
+  const [deleteTarget, setDeleteTarget] = useState<LocalTrackMetadataDoc | null>(null);
 
-  const usedText = useMemo(
-    () => `${formatMb(usedBytes)} / ${formatMb(MAX_LOCAL_TRACKS_TOTAL_BYTES)}`,
-    [usedBytes]
-  );
+  const sortedTracks = useMemo(() => {
+    if (sortField === "title") {
+      return sortByKey(tracks, (t) => t.title, sortDir);
+    }
+    if (sortField === "size") {
+      return sortByNumber(tracks, (t) => t.size, sortDir);
+    }
+    return sortByNumber(tracks, (t) => toMillis(t.createdAt), sortDir);
+  }, [tracks, sortField, sortDir]);
 
   const refresh = async () => {
     const [list, total] = await Promise.all([
@@ -116,8 +129,8 @@ export default function LocalMusicImport({
     void handleUpload(file);
   };
 
-  const handleUpload = async (file: File | null) => {
-    if (!file || !userId || uploading) return;
+  const handleUpload = async (file: File) => {
+    if (!userId || uploading) return;
     setUploading(true);
     try {
       await uploadLocalTrack(userId, file);
@@ -135,14 +148,34 @@ export default function LocalMusicImport({
     }
   };
 
-  const handleDelete = async (track: LocalTrackMetadataDoc) => {
-    setBusyTrackId(track.id);
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    setBusyTrackId(deleteTarget.id);
     try {
-      await deleteLocalTrack(userId, track.id, track.storagePath);
+      await deleteLocalTrack(
+        userId,
+        deleteTarget.id,
+        deleteTarget.storagePath,
+        deleteTarget.coverPath
+      );
       await refresh();
       toast.success("Локальний трек видалено");
     } catch {
       toast.error("Не вдалося видалити локальний трек");
+    } finally {
+      setBusyTrackId(null);
+      setDeleteTarget(null);
+    }
+  };
+
+  const handleCoverUpload = async (track: LocalTrackMetadataDoc, file: File) => {
+    setBusyTrackId(track.id);
+    try {
+      await uploadLocalTrackCover(userId, track.id, file, track.coverPath);
+      await refresh();
+      toast.success("Обкладинку оновлено");
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "Помилка обкладинки");
     } finally {
       setBusyTrackId(null);
     }
@@ -175,19 +208,25 @@ export default function LocalMusicImport({
   return (
     <div className="kawaify-card p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
+        <div className="min-w-0">
           {compact && (
             <h2 className="text-lg font-semibold text-[var(--text)]">Local Music</h2>
           )}
           {showStorage && (
             <p className="text-sm kawaify-text-muted mt-1">
-              Used storage:{" "}
-              <span className="font-medium text-[var(--text)]">{usedText}</span>
+              <span className="font-medium text-[var(--text)]">{tracks.length}</span> local
+              track{tracks.length === 1 ? "" : "s"}
             </p>
           )}
         </div>
         {uploadControl}
       </div>
+
+      {showStorage && (
+        <div className="mt-4">
+          <StorageProgressBar usedBytes={usedBytes} maxBytes={MAX_LOCAL_TRACKS_TOTAL_BYTES} />
+        </div>
+      )}
 
       <p className="text-xs kawaify-text-muted mt-2">
         Supported: mp3, wav, ogg, flac, mp4. Max file 25 MB, total 200 MB.
@@ -204,70 +243,56 @@ export default function LocalMusicImport({
       )}
 
       {showList && !compact && (
-        <div className="mt-4">
-          {tracks.length === 0 ? (
-            <div className="rounded-lg border border-[var(--border)] p-6 text-center text-sm kawaify-text-muted">
-              <span className="text-2xl block mb-2" aria-hidden>
+        <div className="mt-5">
+          <div className="flex flex-wrap items-center gap-2 mb-4">
+            <label className="text-xs kawaify-text-muted flex items-center gap-1">
+              Sort
+              <select
+                value={sortField}
+                onChange={(e) => setSortField(e.target.value as SortField)}
+                className="kawaify-input h-8 px-2 text-xs"
+              >
+                <option value="title">Name</option>
+                <option value="date">Date</option>
+                <option value="size">Size</option>
+              </select>
+            </label>
+            <select
+              value={sortDir}
+              onChange={(e) => setSortDir(e.target.value as SortDirection)}
+              className="kawaify-input h-8 px-2 text-xs"
+              aria-label="Sort direction"
+            >
+              <option value="asc">Ascending</option>
+              <option value="desc">Descending</option>
+            </select>
+          </div>
+
+          {sortedTracks.length === 0 ? (
+            <div className="rounded-lg border border-[var(--border)] p-8 text-center text-sm kawaify-text-muted">
+              <span className="text-3xl block mb-2" aria-hidden>
                 ♪
               </span>
               No local tracks yet. Upload an audio file to get started.
             </div>
           ) : detailedList ? (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-              {tracks.map((track) => (
-                <div
+            <div className="grid grid-cols-1 gap-4">
+              {sortedTracks.map((track) => (
+                <LocalTrackCard
                   key={track.id}
-                  className="rounded-lg border border-[var(--border)] p-4 flex flex-col gap-3"
-                >
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-[var(--text)] truncate">
-                      {track.title}
-                    </p>
-                    <p className="text-xs kawaify-text-muted truncate mt-0.5">
-                      {track.artist}
-                    </p>
-                    <dl className="mt-2 grid grid-cols-1 gap-1 text-xs kawaify-text-muted">
-                      <div className="flex gap-2 min-w-0">
-                        <dt className="shrink-0">File:</dt>
-                        <dd className="truncate">{track.fileName}</dd>
-                      </div>
-                      <div className="flex gap-2">
-                        <dt className="shrink-0">Size:</dt>
-                        <dd>{formatMb(track.size)}</dd>
-                      </div>
-                      <div className="flex gap-2">
-                        <dt className="shrink-0">Added:</dt>
-                        <dd>{formatCreatedAt(track.createdAt)}</dd>
-                      </div>
-                    </dl>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {onPlayTrack && (
-                      <Button
-                        type="button"
-                        variant="primary"
-                        size="sm"
-                        onClick={() => onPlayTrack(toPlayableTrack(track))}
-                      >
-                        Play
-                      </Button>
-                    )}
-                    <Button
-                      type="button"
-                      variant="danger"
-                      size="sm"
-                      disabled={busyTrackId === track.id}
-                      onClick={() => handleDelete(track)}
-                    >
-                      Delete
-                    </Button>
-                  </div>
-                </div>
+                  track={track}
+                  busy={busyTrackId === track.id}
+                  onPlay={onPlayTrack}
+                  onDelete={() => setDeleteTarget(track)}
+                  onCoverUpload={(file) => void handleCoverUpload(track, file)}
+                  formatMb={formatMb}
+                  formatDate={formatCreatedAt}
+                />
               ))}
             </div>
           ) : (
             <div className="space-y-2">
-              {tracks.map((track) => (
+              {sortedTracks.map((track) => (
                 <div
                   key={track.id}
                   className="rounded-lg border border-[var(--border)] p-3 flex items-center justify-between gap-3"
@@ -286,7 +311,7 @@ export default function LocalMusicImport({
                         type="button"
                         variant="ghost"
                         size="sm"
-                        onClick={() => onPlayTrack(toPlayableTrack(track))}
+                        onClick={() => onPlayTrack(toPlayableLocalTrack(track))}
                       >
                         Play
                       </Button>
@@ -296,7 +321,7 @@ export default function LocalMusicImport({
                       variant="danger"
                       size="sm"
                       disabled={busyTrackId === track.id}
-                      onClick={() => handleDelete(track)}
+                      onClick={() => setDeleteTarget(track)}
                     >
                       Delete
                     </Button>
@@ -307,6 +332,16 @@ export default function LocalMusicImport({
           )}
         </div>
       )}
+
+      <ConfirmDialog
+        open={Boolean(deleteTarget)}
+        title="Delete local track?"
+        message={`Remove "${deleteTarget?.title}" from your library? This cannot be undone.`}
+        confirmLabel="Delete"
+        busy={Boolean(busyTrackId)}
+        onConfirm={() => void confirmDelete()}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }

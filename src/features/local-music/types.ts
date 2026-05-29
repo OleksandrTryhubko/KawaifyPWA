@@ -41,6 +41,16 @@ export interface LocalTrackMetadataDoc {
   size: number;
   storagePath: string;
   downloadUrl: string;
+  coverUrl?: string;
+  coverPath?: string;
+  duration?: string;
   createdAt?: unknown;
   updatedAt?: unknown;
 }
+
+export const MAX_LOCAL_COVER_SIZE_BYTES = 2 * 1024 * 1024;
+export const SUPPORTED_COVER_MIME_TYPES = [
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+] as const;

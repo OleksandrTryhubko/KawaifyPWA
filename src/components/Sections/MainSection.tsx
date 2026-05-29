@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Search, X } from "lucide-react";
 import {
   fetchAudiusTracks,
   formatAudiusDuration,
@@ -6,10 +7,13 @@ import {
   getAudiusStreamUrl,
 } from "../../api/audius";
 import type { AudiusTrack } from "../../types/audius";
+import { useAuth } from "../../hooks/useAuth";
 import { usePlayerStore } from "../../store/playerStore";
 import Greeting from "../Greeting";
 import TrackCard from "../common/TrackCard";
 import Button from "../ui/Button";
+import RecentlyPlayedSection from "../home/RecentlyPlayedSection";
+import { sortByKey, type SortDirection } from "../../utils/sortHelpers";
 
 const GENRES = [
   "lofi",
@@ -37,13 +41,25 @@ const genreColors: Record<string, string> = {
   electronic: "from-violet-600 to-sky-500",
 };
 
+type SearchSort =
+  | "relevance"
+  | "name-asc"
+  | "name-desc"
+  | "artist-asc"
+  | "artist-desc";
+
+type FilterField = "all" | "title" | "artist" | "genre";
+
 const MainSection = () => {
+  const { user } = useAuth();
   const [tracks, setTracks] = useState<AudiusTrack[]>([]);
   const [activePreset, setActivePreset] = useState<string>("lofi");
   const [searchText, setSearchText] = useState("");
   const [debounced, setDebounced] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [searchSort, setSearchSort] = useState<SearchSort>("relevance");
+  const [filterField, setFilterField] = useState<FilterField>("all");
   const { setCurrentTrack, setIsPlaying } = usePlayerStore();
 
   useEffect(() => {
@@ -82,6 +98,31 @@ const MainSection = () => {
     };
   }, [effectiveQuery]);
 
+  const filteredTracks = useMemo(() => {
+    const q = debounced.toLowerCase();
+    if (!q) return tracks;
+
+    return tracks.filter((track) => {
+      const title = track.title.toLowerCase();
+      const artist = track.user?.name?.toLowerCase() ?? "";
+      const genre = track.genre?.toLowerCase() ?? "";
+
+      if (filterField === "title") return title.includes(q);
+      if (filterField === "artist") return artist.includes(q);
+      if (filterField === "genre") return genre.includes(q);
+      return title.includes(q) || artist.includes(q) || genre.includes(q);
+    });
+  }, [tracks, debounced, filterField]);
+
+  const displayTracks = useMemo(() => {
+    if (searchSort === "relevance") return filteredTracks;
+    const dir: SortDirection = searchSort.endsWith("desc") ? "desc" : "asc";
+    if (searchSort.startsWith("artist")) {
+      return sortByKey(filteredTracks, (t) => t.user?.name ?? "", dir);
+    }
+    return sortByKey(filteredTracks, (t) => t.title, dir);
+  }, [filteredTracks, searchSort]);
+
   const handlePlay = (track: AudiusTrack) => {
     setCurrentTrack({
       id: track.id,
@@ -99,6 +140,13 @@ const MainSection = () => {
   const handlePresetClick = (preset: string) => {
     setActivePreset(preset);
     setSearchText(preset);
+    setSearchSort("relevance");
+  };
+
+  const clearSearch = () => {
+    setSearchText("");
+    setFilterField("all");
+    setSearchSort("relevance");
   };
 
   return (
@@ -109,31 +157,62 @@ const MainSection = () => {
       <div className="relative z-10 px-4 sm:px-6 pt-6 sm:pt-10 pb-6">
         <Greeting />
 
-        <div className="mt-5 mb-5 flex flex-col sm:flex-row gap-2 items-stretch">
-          <div className="flex-1 min-w-0">
-            <div className="kawaify-input h-11 px-4 shadow-sm flex items-center">
-              <input
-                value={searchText}
-                onChange={(e) => setSearchText(e.target.value)}
-                placeholder="Search tracks…"
-                className="w-full bg-transparent outline-none text-[var(--text)] placeholder:text-[var(--text-muted)]"
+        {user && <RecentlyPlayedSection />}
+
+        <div className="mt-5 mb-4 flex flex-col gap-3">
+          <div className="flex flex-col sm:flex-row gap-2 items-stretch">
+            <div className="flex-1 min-w-0 relative">
+              <Search
+                className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--text-muted)] pointer-events-none"
+                aria-hidden
               />
+              <div className="kawaify-input h-11 pl-10 pr-3 shadow-sm flex items-center">
+                <input
+                  value={searchText}
+                  onChange={(e) => setSearchText(e.target.value)}
+                  placeholder="Search tracks, artists…"
+                  className="w-full bg-transparent outline-none text-[var(--text)] placeholder:text-[var(--text-muted)]"
+                  aria-label="Search tracks"
+                />
+              </div>
             </div>
-            <p className="text-xs text-white/70 mt-2 hidden sm:block">
-              Genre buttons — швидкі preset-запити. Пошук — текстом, з debounce.
-            </p>
-          </div>
-          <div className="sm:w-[108px]">
             <Button
               type="button"
               variant="secondary"
               size="md"
-              onClick={() => setSearchText("")}
-              disabled={isLoading || searchText.length === 0}
-              fullWidth
+              onClick={clearSearch}
+              disabled={isLoading || (searchText.length === 0 && filterField === "all")}
+              className="sm:min-w-[100px] shrink-0"
+              leftIcon={<X className="h-4 w-4" />}
             >
               Clear
             </Button>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <select
+              value={filterField}
+              onChange={(e) => setFilterField(e.target.value as FilterField)}
+              className="kawaify-input h-9 px-2 text-xs flex-1 min-w-[120px] sm:flex-none sm:w-auto"
+              aria-label="Filter by"
+            >
+              <option value="all">All fields</option>
+              <option value="title">Track name</option>
+              <option value="artist">Artist</option>
+              <option value="genre">Genre</option>
+            </select>
+            <select
+              value={searchSort}
+              onChange={(e) => setSearchSort(e.target.value as SearchSort)}
+              className="kawaify-input h-9 px-2 text-xs flex-1 min-w-[120px] sm:flex-none sm:w-auto"
+              aria-label="Sort results"
+            >
+              <option value="relevance">Relevance</option>
+              <option value="name-asc">Name A-Z</option>
+              <option value="name-desc">Name Z-A</option>
+              <option value="artist-asc">Artist A-Z</option>
+              <option value="artist-desc">Artist Z-A</option>
+            </select>
           </div>
         </div>
 
@@ -163,28 +242,37 @@ const MainSection = () => {
         )}
 
         {isLoading && (
-          <p className="text-sm mb-4 kawaify-text-muted">Loading…</p>
+          <div className="mb-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div
+                key={i}
+                className="kawaify-card h-40 animate-pulse bg-[var(--surface-soft)]/50"
+              />
+            ))}
+          </div>
         )}
 
-        {!isLoading && !loadError && tracks.length === 0 && (
+        {!isLoading && !loadError && displayTracks.length === 0 && (
           <div className="mb-4 home-notice rounded-xl p-5">
             <p className="font-semibold text-[var(--text)]">Нічого не знайдено</p>
             <p className="text-sm mt-1 kawaify-text-muted">
-              Спробуй інший запит або вибери жанр.
+              Спробуй інший запит, фільтр або вибери жанр.
             </p>
           </div>
         )}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 pb-2">
-          {tracks.map((track) => (
-            <TrackCard
-              key={track.id}
-              title={track.title}
-              artist={track.user.name}
-              image={getAudiusArtworkUrl(track.artwork)}
-              onPlay={() => handlePlay(track)}
-            />
-          ))}
+          {!isLoading &&
+            displayTracks.map((track) => (
+              <TrackCard
+                key={track.id}
+                title={track.title}
+                artist={track.user.name}
+                image={getAudiusArtworkUrl(track.artwork)}
+                onPlay={() => handlePlay(track)}
+                showPlayButton
+              />
+            ))}
         </div>
       </div>
 

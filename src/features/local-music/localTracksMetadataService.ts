@@ -16,9 +16,11 @@ import {
 } from "firebase/storage";
 import { db, storage } from "../../lib/firebase";
 import {
+  MAX_LOCAL_COVER_SIZE_BYTES,
   MAX_LOCAL_TRACK_FILE_SIZE_BYTES,
   MAX_LOCAL_TRACKS_TOTAL_BYTES,
   SUPPORTED_AUDIO_MIME_TYPES,
+  SUPPORTED_COVER_MIME_TYPES,
   type LocalTrackMetadataDoc,
 } from "./types";
 
@@ -163,18 +165,68 @@ export async function uploadLocalTrack(
   }
 }
 
+export async function uploadLocalTrackCover(
+  userId: string,
+  trackId: string,
+  file: File,
+  existingCoverPath?: string
+): Promise<{ coverUrl: string; coverPath: string }> {
+  if (!userId) throw new Error("Потрібен вхід у акаунт");
+
+  const isAllowed = SUPPORTED_COVER_MIME_TYPES.includes(
+    file.type as (typeof SUPPORTED_COVER_MIME_TYPES)[number]
+  );
+  if (!isAllowed) {
+    throw new Error("Підтримуються PNG, JPG або WEBP");
+  }
+  if (file.size > MAX_LOCAL_COVER_SIZE_BYTES) {
+    throw new Error("Обкладинка завелика (макс. 2 MB)");
+  }
+
+  const safeName = toSafeFileName(file.name);
+  const coverPath = `users/${userId}/local-tracks/${trackId}/cover/${safeName}`;
+
+  try {
+    if (existingCoverPath) {
+      try {
+        await deleteObject(ref(storage, existingCoverPath));
+      } catch {
+        // previous cover may be missing
+      }
+    }
+
+    await uploadBytes(ref(storage, coverPath), file, {
+      contentType: file.type,
+      cacheControl: "public,max-age=3600",
+    });
+    const coverUrl = await getDownloadURL(ref(storage, coverPath));
+
+    await setDoc(
+      localTrackDocRef(userId, trackId),
+      { coverUrl, coverPath, updatedAt: serverTimestamp() },
+      { merge: true }
+    );
+
+    return { coverUrl, coverPath };
+  } catch (error) {
+    throw toUploadError(error);
+  }
+}
+
 export async function deleteLocalTrack(
   userId: string,
   trackId: string,
-  storagePath?: string
+  storagePath?: string,
+  coverPath?: string
 ): Promise<void> {
   await deleteDoc(localTrackDocRef(userId, trackId));
 
-  if (storagePath) {
+  const paths = [storagePath, coverPath].filter(Boolean) as string[];
+  for (const path of paths) {
     try {
-      await deleteObject(ref(storage, storagePath));
+      await deleteObject(ref(storage, path));
     } catch {
-      // TODO: log to monitoring when enabled
+      // file may already be removed
     }
   }
 }

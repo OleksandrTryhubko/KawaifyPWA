@@ -5,7 +5,9 @@ import { useToast } from "../../hooks/useToast";
 import Button from "../../components/ui/Button";
 import { uploadUserAvatar } from "./accountService";
 import LocalMusicImport from "../local-music/LocalMusicImport";
-import { formatListeningTime } from "../../utils/listeningTime";
+import ProfileStatsGrid from "../../components/account/ProfileStatsGrid";
+import UserActivityBlock from "../../components/account/UserActivityBlock";
+import { getUserLocalTracks } from "../local-music/localTracksMetadataService";
 
 export default function AccountPage() {
   const { user, logout, refreshUser } = useAuth();
@@ -14,6 +16,7 @@ export default function AccountPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [localTracksCount, setLocalTracksCount] = useState(0);
 
   const displayName = useMemo(() => {
     const name = user?.displayName?.trim();
@@ -74,6 +77,16 @@ export default function AccountPage() {
     }
   };
 
+  useEffect(() => {
+    if (!user?.uid) {
+      setLocalTracksCount(0);
+      return;
+    }
+    getUserLocalTracks(user.uid)
+      .then((tracks) => setLocalTracksCount(tracks.length))
+      .catch(() => setLocalTracksCount(0));
+  }, [user?.uid]);
+
   if (!user) {
     return (
       <div className="kawaify-page">
@@ -92,8 +105,6 @@ export default function AccountPage() {
     );
   }
 
-  const playlistsCount = user.playlists?.length ?? 0;
-  const favoritesCount = user.favorites?.length ?? 0;
   const avatarSrc = previewUrl || user.avatar || "";
 
   return (
@@ -168,22 +179,7 @@ export default function AccountPage() {
             </div>
           </div>
 
-          <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div className="kawaify-surface rounded-lg border border-[var(--border)] p-4">
-              <div className="text-xs kawaify-text-muted">Playlists</div>
-              <div className="text-xl font-bold mt-1">{playlistsCount}</div>
-            </div>
-            <div className="kawaify-surface rounded-lg border border-[var(--border)] p-4">
-              <div className="text-xs kawaify-text-muted">Favorites</div>
-              <div className="text-xl font-bold mt-1">{favoritesCount}</div>
-            </div>
-            <div className="kawaify-surface rounded-lg border border-[var(--border)] p-4">
-              <div className="text-xs kawaify-text-muted">Listening time</div>
-              <div className="text-xl font-bold mt-1 text-pink-200/90">
-                {formatListeningTime(user.stats.listeningSeconds)}
-              </div>
-            </div>
-          </div>
+          <ProfileStatsGrid user={user} localTracksCount={localTracksCount} />
 
           <div className="mt-5 flex justify-end">
             <Button type="button" variant="danger" size="sm" onClick={handleSignOut}>
@@ -198,6 +194,8 @@ export default function AccountPage() {
           showList={false}
           showStorage
         />
+
+        <UserActivityBlock />
 
         <div className="kawaify-card p-4 flex items-start gap-3">
           <span className="text-xl shrink-0" aria-hidden>

@@ -66,7 +66,7 @@ const YourLibraryList = ({ onNavigate }: YourLibraryListProps) => {
           >
             <div className="w-8 h-8 shrink-0 overflow-hidden rounded">
               <TrackArtwork
-                src={playlist.image}
+                src={playlist.coverUrl || playlist.image}
                 alt={playlist.title}
                 className="!aspect-square w-8 h-8"
                 size="sm"

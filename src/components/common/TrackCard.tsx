@@ -1,4 +1,5 @@
 import clsx from "clsx";
+import { Trash2 } from "lucide-react";
 import TrackArtwork from "./TrackArtwork";
 import Button from "../ui/Button";
 
@@ -60,17 +61,16 @@ export default function TrackCard({
           {onRemove && (
             <Button
               type="button"
-              variant="ghost"
+              variant="danger"
               size="sm"
-              className="shrink-0 h-8 w-8 p-0 text-red-400 hover:text-red-300"
+              className="shrink-0 h-8 px-2"
               onClick={(e) => {
                 e.stopPropagation();
                 onRemove();
               }}
+              leftIcon={<Trash2 className="h-3.5 w-3.5" />}
               aria-label="Remove track"
-            >
-              🗑
-            </Button>
+            />
           )}
         </div>
 
