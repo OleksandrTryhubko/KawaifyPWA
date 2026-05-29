@@ -6,8 +6,10 @@ import { VolumeControl } from "../Player/Volume";
 import { CurrentSong, SongControl } from "../Player/Song";
 import FavoriteButton from "../Player/FavoriteButton";
 import AddToPlaylistButton from "../Player/AddToPlaylistButton";
+import { useListeningTracker } from "../../hooks/useListeningTracker";
 
 const Player = () => {
+  useListeningTracker();
   const { currentTrack, isPlaying, setIsPlaying, volume } = usePlayerStore((state) => ({
     currentTrack: state.currentTrack,
     isPlaying: state.isPlaying,

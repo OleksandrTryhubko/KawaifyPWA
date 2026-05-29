@@ -1,5 +1,10 @@
 import type { Playlist } from "./playlist";
 
+export interface UserStats {
+  listeningSeconds: number;
+  tracksPlayed: number;
+}
+
 export interface UserProfile {
   uid: string;
   email: string;
@@ -7,4 +12,5 @@ export interface UserProfile {
   avatar: string;
   favorites: string[];
   playlists: Playlist[];
+  stats: UserStats;
 }

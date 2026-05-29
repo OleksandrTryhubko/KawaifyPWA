@@ -1,6 +1,14 @@
-import { doc, setDoc, updateDoc, getDoc, serverTimestamp } from "firebase/firestore";
+import {
+  doc,
+  setDoc,
+  updateDoc,
+  getDoc,
+  serverTimestamp,
+  increment,
+} from "firebase/firestore";
 import { db } from "../lib/firebase";
 import type { Playlist } from "../types/playlist";
+import { DEFAULT_USER_STATS } from "../utils/userStats";
 
 export const createUser = async (email: string, uid: string) => {
   await setDoc(doc(db, "users", uid), {
@@ -9,9 +17,46 @@ export const createUser = async (email: string, uid: string) => {
     avatar: "",
     favorites: [],
     playlists: [],
+    stats: { ...DEFAULT_USER_STATS },
     createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
   });
 };
+
+export async function incrementListeningStats(
+  userId: string,
+  seconds: number,
+  trackStarted = false
+): Promise<void> {
+  if (!userId) return;
+
+  const roundedSeconds = Math.max(0, Math.floor(seconds));
+  if (roundedSeconds === 0 && !trackStarted) return;
+
+  const userRef = doc(db, "users", userId);
+  const snap = await getDoc(userRef);
+  if (!snap.exists()) return;
+
+  const data = snap.data();
+  if (!data?.stats) {
+    await updateDoc(userRef, {
+      stats: {
+        listeningSeconds: roundedSeconds,
+        tracksPlayed: trackStarted ? 1 : 0,
+      },
+      updatedAt: serverTimestamp(),
+    });
+    return;
+  }
+
+  await updateDoc(userRef, {
+    ...(roundedSeconds > 0
+      ? { "stats.listeningSeconds": increment(roundedSeconds) }
+      : {}),
+    ...(trackStarted ? { "stats.tracksPlayed": increment(1) } : {}),
+    updatedAt: serverTimestamp(),
+  });
+}
 
 export type FavoriteToggleResult = "added" | "removed" | "unchanged";
 

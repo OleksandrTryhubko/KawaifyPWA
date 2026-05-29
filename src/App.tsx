@@ -8,6 +8,8 @@ import Register from "./pages/Register";
 import PlaylistPage from "./pages/PlaylistPage";
 import FavoritesPage from "./pages/FavoritesPage";
 import AccountPage from "./features/account/AccountPage";
+import MyMusicPage from "./features/local-music/MyMusicPage";
+import FloatingAssistant from "./features/assistant/FloatingAssistant";
 import { useState } from "react";
 import { Routes, Route } from "react-router-dom";
 
@@ -38,9 +40,12 @@ function App() {
             <Route path="/account" element={<AccountPage />} />
             <Route path="/playlist/:id" element={<PlaylistPage />} />
             <Route path="/favorites" element={<FavoritesPage />} />
+            <Route path="/my-music" element={<MyMusicPage />} />
           </Routes>
         </main>
       </div>
+
+      <FloatingAssistant />
 
       <footer
         className="fixed bottom-0 left-0 w-full z-50 border-t border-[var(--border)]"

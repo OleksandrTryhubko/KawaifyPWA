@@ -5,16 +5,12 @@ import { useToast } from "../../hooks/useToast";
 import Button from "../../components/ui/Button";
 import { uploadUserAvatar } from "./accountService";
 import LocalMusicImport from "../local-music/LocalMusicImport";
-import AssistantPanel from "../assistant/AssistantPanel";
-import { usePlayerStore } from "../../store/playerStore";
-import type { Track } from "../../types/track";
+import { formatListeningTime } from "../../utils/listeningTime";
 
 export default function AccountPage() {
   const { user, logout, refreshUser } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
-  const { setCurrentTrack, setIsPlaying } = usePlayerStore();
-
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -32,15 +28,6 @@ export default function AccountPage() {
     await logout();
     toast.info("До зустрічі! ♪");
     navigate("/");
-  };
-
-  const handlePlayLocalTrack = async (track: Track) => {
-    try {
-      await setCurrentTrack(track);
-      setIsPlaying(true);
-    } catch {
-      toast.error("Не вдалося запустити локальний трек");
-    }
   };
 
   useEffect(() => {
@@ -193,7 +180,7 @@ export default function AccountPage() {
             <div className="kawaify-surface rounded-lg border border-[var(--border)] p-4">
               <div className="text-xs kawaify-text-muted">Listening time</div>
               <div className="text-xl font-bold mt-1 text-pink-200/90">
-                скоро
+                {formatListeningTime(user.stats.listeningSeconds)}
               </div>
             </div>
           </div>
@@ -205,12 +192,21 @@ export default function AccountPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
-          <LocalMusicImport
-            userId={user.uid}
-            onPlayTrack={handlePlayLocalTrack}
-          />
-          <AssistantPanel />
+        <LocalMusicImport
+          userId={user.uid}
+          compact
+          showList={false}
+          showStorage
+        />
+
+        <div className="kawaify-card p-4 flex items-start gap-3">
+          <span className="text-xl shrink-0" aria-hidden>
+            ✨
+          </span>
+          <p className="text-sm kawaify-text-muted">
+            <span className="font-medium text-[var(--text)]">Kawaify AI</span> is
+            available from the bottom-right button.
+          </p>
         </div>
       </div>
     </div>

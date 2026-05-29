@@ -41,6 +41,45 @@ function stripExtension(fileName: string): string {
   return fileName.replace(/\.[^.]+$/, "").trim() || "Local Track";
 }
 
+function toUploadError(error: unknown): Error {
+  if (error instanceof Error && error.message && !("code" in error)) {
+    return error;
+  }
+
+  const code =
+    error && typeof error === "object" && "code" in error
+      ? String((error as { code: string }).code)
+      : "";
+
+  if (
+    code.includes("storage/unauthorized") ||
+    code.includes("storage/unauthenticated") ||
+    code.includes("permission-denied")
+  ) {
+    return new Error(
+      "Немає доступу до Firebase Storage. Перевірте правила безпеки."
+    );
+  }
+
+  if (code.includes("storage/quota-exceeded") || code.includes("resource-exhausted")) {
+    return new Error("Перевищено ліміт сховища Firebase.");
+  }
+
+  if (code.includes("storage/canceled")) {
+    return new Error("Завантаження скасовано.");
+  }
+
+  if (code.includes("unavailable") || code.includes("network")) {
+    return new Error("Помилка мережі. Перевірте з'єднання та спробуйте знову.");
+  }
+
+  if (error instanceof Error) {
+    return error;
+  }
+
+  return new Error("Не вдалося завантажити файл. Перевірте Firebase Storage rules.");
+}
+
 export async function saveLocalTrackMetadata(
   userId: string,
   track: LocalTrackMetadataDoc
@@ -97,27 +136,31 @@ export async function uploadLocalTrack(
   const storagePath = `users/${userId}/local-tracks/${id}/${safeFileName}`;
   const storageRef = ref(storage, storagePath);
 
-  await uploadBytes(storageRef, file, {
-    contentType: file.type,
-    cacheControl: "public,max-age=3600",
-  });
-  const downloadUrl = await getDownloadURL(storageRef);
+  try {
+    await uploadBytes(storageRef, file, {
+      contentType: file.type,
+      cacheControl: "public,max-age=3600",
+    });
+    const downloadUrl = await getDownloadURL(storageRef);
 
-  const metadata: LocalTrackMetadataDoc = {
-    id,
-    userId,
-    title: stripExtension(file.name),
-    artist: "Local file",
-    source: "local",
-    fileName: file.name,
-    mimeType: file.type,
-    size: file.size,
-    storagePath,
-    downloadUrl,
-  };
+    const metadata: LocalTrackMetadataDoc = {
+      id,
+      userId,
+      title: stripExtension(file.name),
+      artist: "Local file",
+      source: "local",
+      fileName: file.name,
+      mimeType: file.type,
+      size: file.size,
+      storagePath,
+      downloadUrl,
+    };
 
-  await saveLocalTrackMetadata(userId, metadata);
-  return metadata;
+    await saveLocalTrackMetadata(userId, metadata);
+    return metadata;
+  } catch (error) {
+    throw toUploadError(error);
+  }
 }
 
 export async function deleteLocalTrack(

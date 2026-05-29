@@ -35,6 +35,15 @@ const YourLibraryList = ({ onNavigate }: YourLibraryListProps) => {
 
   return (
     <>
+      <li>
+        <Link to="/my-music" className={linkClass} onClick={onNavigate}>
+          <div className="w-8 h-8 shrink-0 rounded bg-gradient-to-br from-pink-500/30 to-purple-500/20 flex items-center justify-center text-sm">
+            ♪
+          </div>
+          <span className="truncate">My Music</span>
+        </Link>
+      </li>
+
       {favorites.length > 0 && (
         <li>
           <Link to="/favorites" className={linkClass} onClick={onNavigate}>
