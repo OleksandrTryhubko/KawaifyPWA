@@ -6,4 +6,6 @@ export {
   getAssistantStats,
   clearAssistantHistory,
   saveAssistantMessage,
+  parseAssistantStats,
+  DEFAULT_ASSISTANT_STATS,
 } from "../../services/assistantService";

@@ -17,6 +17,7 @@ import type {
 import { createFlatBands } from "../types/player";
 import { presetToBands, EQUALIZER_PRESETS } from "../features/audio-tools/equalizerPresets";
 import { normalizeTrackForPlayback } from "../utils/trackAudioUrl";
+import { clamp01, clampFinite } from "../utils/clamp01";
 import { cleanTrackForFirestore } from "../utils/firestoreClean";
 import { db } from "../lib/firebase";
 import { doc, setDoc, getDoc } from "firebase/firestore";
@@ -161,7 +162,7 @@ export const usePlayerStore = create<UsePlayerStoreState>()(
       setIsPlaying: (value) => set({ isPlaying: value }),
       togglePlayPause: () => set((state) => ({ isPlaying: !state.isPlaying })),
       setTracks: (tracks) => set({ tracks }),
-      setVolume: (volume) => set({ volume }),
+      setVolume: (volume) => set({ volume: clamp01(volume) }),
       setIsLoading: (value) => set({ isLoading: value }),
       setQueuePanelOpen: (open) => set({ queuePanelOpen: open }),
       setEqualizerOpen: (open) => set({ equalizerOpen: open }),
@@ -314,7 +315,8 @@ export const usePlayerStore = create<UsePlayerStoreState>()(
       setEqualizerBands: (bands) =>
         set({ equalizerBands: bands, equalizerPresetId: "custom" }),
 
-      setEqualizerMasterGain: (gain) => set({ equalizerMasterGain: gain }),
+      setEqualizerMasterGain: (gain) =>
+        set({ equalizerMasterGain: clampFinite(gain, 0, 2, 1) }),
 
       applyEqualizerPreset: (presetId) => {
         const preset = EQUALIZER_PRESETS.find((p) => p.id === presetId);
@@ -349,6 +351,15 @@ export const usePlayerStore = create<UsePlayerStoreState>()(
         equalizerPresetId: state.equalizerPresetId,
         volume: state.volume,
       }),
+      merge: (persisted, current) => {
+        const p = persisted as Partial<UsePlayerStoreState> | undefined;
+        return {
+          ...current,
+          ...p,
+          volume: clamp01(p?.volume ?? current.volume),
+          equalizerMasterGain: clampFinite(p?.equalizerMasterGain ?? 1, 0, 2, 1),
+        };
+      },
     }
   )
 );

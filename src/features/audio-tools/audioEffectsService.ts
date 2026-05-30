@@ -1,5 +1,6 @@
 import type { EqualizerBand } from "../../types/player";
 import { EQ_FREQUENCIES } from "../../types/player";
+import { clampFinite } from "../../utils/clamp01";
 
 const MIN_GAIN = -12;
 const MAX_GAIN = 12;
@@ -79,7 +80,7 @@ export class AudioEffectsService {
 
   setMasterGain(linear: number): void {
     if (this.gainNode) {
-      this.gainNode.gain.value = Math.max(0, Math.min(2, linear));
+      this.gainNode.gain.value = clampFinite(linear, 0, 2, 1);
     }
   }
 
@@ -89,6 +90,10 @@ export class AudioEffectsService {
     analyser.fftSize = 256;
     this.gainNode.connect(analyser);
     return analyser;
+  }
+
+  isConnectedTo(audio: HTMLAudioElement | null): boolean {
+    return audio !== null && this.connectedElement === audio;
   }
 
   disconnect(): void {

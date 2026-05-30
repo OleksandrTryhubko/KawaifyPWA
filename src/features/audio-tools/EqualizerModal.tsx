@@ -5,6 +5,7 @@ import { EQUALIZER_PRESETS } from "./equalizerPresets";
 import EqGraph from "./EqGraph";
 import AdvancedPlaybackSection from "../../components/Player/AdvancedPlaybackSection";
 import { Slider } from "../../components/Slider";
+import { isLocalTrack } from "../../utils/trackAudioUrl";
 import clsx from "clsx";
 
 function formatFreq(f: number): string {
@@ -22,8 +23,10 @@ export default function EqualizerModal() {
     setEqualizerBand,
     setEqualizerMasterGain,
     applyEqualizerPreset,
+    currentTrack,
   } = usePlayerStore();
   const { t } = useLanguage();
+  const eqDisabled = isLocalTrack(currentTrack);
 
   if (!equalizerOpen) return null;
 
@@ -53,11 +56,17 @@ export default function EqualizerModal() {
           </button>
         </header>
 
-        <div className="hidden md:block px-4 pt-3">
+        {eqDisabled && (
+          <p className="px-4 py-2 text-xs text-amber-400/90 bg-amber-500/10 border-b border-[var(--border)] shrink-0">
+            {t("eq.audiusOnly")}
+          </p>
+        )}
+
+        <div className={clsx("hidden md:block px-4 pt-3", eqDisabled && "opacity-50 pointer-events-none")}>
           <EqGraph bands={equalizerBands} />
         </div>
 
-        <div className="px-3 py-2 flex flex-wrap gap-1.5 shrink-0 border-b border-[var(--border)] md:border-0">
+        <div className={clsx("px-3 py-2 flex flex-wrap gap-1.5 shrink-0 border-b border-[var(--border)] md:border-0", eqDisabled && "opacity-50 pointer-events-none")}>
           {EQUALIZER_PRESETS.map((p) => (
             <button
               key={p.id}
@@ -76,7 +85,7 @@ export default function EqualizerModal() {
         </div>
 
         {/* Desktop: horizontal sliders */}
-        <div className="hidden md:flex px-4 py-4 gap-2 items-end justify-between overflow-x-auto">
+        <div className={clsx("hidden md:flex px-4 py-4 gap-2 items-end justify-between overflow-x-auto", eqDisabled && "opacity-50 pointer-events-none")}>
           {equalizerBands.map((band, i) => (
             <div key={band.frequency} className="flex flex-col items-center gap-2 min-w-[44px]">
               <span className="text-[10px] tabular-nums text-pink-400/80">
@@ -93,7 +102,7 @@ export default function EqualizerModal() {
         </div>
 
         {/* Mobile: large vertical sliders, scrollable */}
-        <div className="md:hidden flex-1 overflow-y-auto px-4 py-3 space-y-4 max-h-[50vh]">
+        <div className={clsx("md:hidden flex-1 overflow-y-auto px-4 py-3 space-y-4 max-h-[50vh]", eqDisabled && "opacity-50 pointer-events-none")}>
           {equalizerBands.map((band, i) => (
             <div key={band.frequency} className="flex items-center gap-3">
               <span className="text-xs font-medium w-10 text-[var(--text-muted)]">
@@ -119,7 +128,7 @@ export default function EqualizerModal() {
 
         <AdvancedPlaybackSection />
 
-        <footer className="px-4 py-3 border-t border-[var(--border)] shrink-0">
+        <footer className={clsx("px-4 py-3 border-t border-[var(--border)] shrink-0", eqDisabled && "opacity-50 pointer-events-none")}>
           <div className="flex items-center gap-3">
             <span className="text-xs text-[var(--text-muted)] shrink-0 w-20">{t("eq.masterGain")}</span>
             <Slider

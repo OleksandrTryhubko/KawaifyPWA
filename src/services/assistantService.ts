@@ -16,6 +16,10 @@ import {
 } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { firestorePaths } from "../lib/firestorePaths";
+import {
+  assistantConfig,
+  isGeminiAssistantEnabled,
+} from "../config/assistantConfig";
 import type { AssistantMessage } from "../features/assistant/types";
 
 const MESSAGE_LIMIT = 50;
@@ -24,6 +28,11 @@ export interface AssistantStats {
   totalMessages: number;
   lastUsedAt: Date | null;
 }
+
+export const DEFAULT_ASSISTANT_STATS: AssistantStats = {
+  totalMessages: 0,
+  lastUsedAt: null,
+};
 
 function mapMessage(snap: QueryDocumentSnapshot): AssistantMessage {
   const data = snap.data();
@@ -37,8 +46,28 @@ function mapMessage(snap: QueryDocumentSnapshot): AssistantMessage {
   };
 }
 
-/** Mock music assistant — replace with Gemini/OpenAI via backend later */
-export async function sendMessage(message: string): Promise<string> {
+export function parseAssistantStats(
+  data: Record<string, unknown> | undefined
+): AssistantStats {
+  const raw = data?.assistantStats;
+  if (!raw || typeof raw !== "object") {
+    return { ...DEFAULT_ASSISTANT_STATS };
+  }
+  const stats = raw as Record<string, unknown>;
+  const lastUsedAt = stats.lastUsedAt;
+  return {
+    totalMessages: Math.max(0, Number(stats.totalMessages) || 0),
+    lastUsedAt:
+      lastUsedAt instanceof Timestamp
+        ? lastUsedAt.toDate()
+        : lastUsedAt instanceof Date
+          ? lastUsedAt
+          : null,
+  };
+}
+
+/** Mock responses — used when provider is "mock". */
+async function sendMockMessage(message: string): Promise<string> {
   const text = message.trim().toLowerCase();
 
   if (
@@ -84,25 +113,84 @@ Genres:
 - "Create playlist idea"`;
 }
 
+/**
+ * Future Gemini path — call Cloud Function, NOT the Gemini API from React.
+ *
+ * Production: React → Firebase Auth (ID token) → Cloud Function → Gemini API
+ */
+async function sendGeminiMessage(
+  message: string,
+  userId?: string
+): Promise<string> {
+  const url = assistantConfig.cloudFunctionUrl?.trim();
+  if (!url) {
+    throw new Error("Assistant Cloud Function URL is not configured");
+  }
+
+  // Placeholder for future implementation:
+  // const token = await auth.currentUser?.getIdToken();
+  // const res = await fetch(url, {
+  //   method: "POST",
+  //   headers: {
+  //     "Content-Type": "application/json",
+  //     Authorization: `Bearer ${token}`,
+  //   },
+  //   body: JSON.stringify({ message, userId }),
+  // });
+  // if (!res.ok) throw new Error("Assistant request failed");
+  // const data = (await res.json()) as { reply: string };
+  // return data.reply;
+
+  void userId;
+  void message;
+  throw new Error("Gemini assistant is not enabled yet");
+}
+
+/**
+ * Send a user message and receive an assistant reply.
+ * Routes by assistantConfig.provider — UI stays unchanged when switching mock → gemini.
+ */
+export async function sendMessage(
+  message: string,
+  userId?: string
+): Promise<string> {
+  if (isGeminiAssistantEnabled()) {
+    return sendGeminiMessage(message, userId);
+  }
+  return sendMockMessage(message);
+}
+
 export async function loadAssistantMessages(
   userId: string,
   max = MESSAGE_LIMIT
 ): Promise<AssistantMessage[]> {
-  const q = query(
-    collection(db, firestorePaths.assistantMessages(userId)),
-    orderBy("createdAt", "desc"),
-    limit(max)
-  );
-  const snap = await getDocs(q);
-  return snap.docs.map(mapMessage).reverse();
+  if (!userId) return [];
+
+  try {
+    const q = query(
+      collection(db, firestorePaths.assistantMessages(userId)),
+      orderBy("createdAt", "desc"),
+      limit(max)
+    );
+    const snap = await getDocs(q);
+    return snap.docs.map(mapMessage).reverse();
+  } catch {
+    /* collection may not exist yet or rules offline */
+    return [];
+  }
 }
 
 async function updateAssistantStats(userId: string): Promise<void> {
-  const userRef = doc(db, firestorePaths.user(userId));
-  await updateDoc(userRef, {
-    "assistantStats.totalMessages": increment(1),
-    "assistantStats.lastUsedAt": serverTimestamp(),
-  });
+  if (!userId) return;
+  try {
+    const userRef = doc(db, firestorePaths.user(userId));
+    await updateDoc(userRef, {
+      "assistantStats.totalMessages": increment(1),
+      "assistantStats.lastUsedAt": serverTimestamp(),
+    });
+  } catch {
+    /* stats field may not exist yet — non-fatal */
+  }
 }
 
 export async function saveAssistantMessage(
@@ -132,37 +220,46 @@ export async function sendAssistantMessage(
   userMessage: string
 ): Promise<{ user: AssistantMessage; assistant: AssistantMessage }> {
   const user = await saveAssistantMessage(userId, "user", userMessage);
-  const replyText = await sendMessage(userMessage);
+  const replyText = await sendMessage(userMessage, userId);
   const assistant = await saveAssistantMessage(userId, "assistant", replyText);
   return { user, assistant };
 }
 
 export async function getAssistantStats(userId: string): Promise<AssistantStats> {
-  const snap = await getDoc(doc(db, firestorePaths.user(userId)));
-  if (!snap.exists()) {
-    return { totalMessages: 0, lastUsedAt: null };
+  if (!userId) return { ...DEFAULT_ASSISTANT_STATS };
+
+  try {
+    const snap = await getDoc(doc(db, firestorePaths.user(userId)));
+    if (!snap.exists()) {
+      return { ...DEFAULT_ASSISTANT_STATS };
+    }
+    return parseAssistantStats(snap.data() as Record<string, unknown>);
+  } catch {
+    return { ...DEFAULT_ASSISTANT_STATS };
   }
-  const stats = snap.data().assistantStats as
-    | { totalMessages?: number; lastUsedAt?: Timestamp }
-    | undefined;
-  return {
-    totalMessages: stats?.totalMessages ?? 0,
-    lastUsedAt:
-      stats?.lastUsedAt instanceof Timestamp ? stats.lastUsedAt.toDate() : null,
-  };
 }
 
 export async function clearAssistantHistory(userId: string): Promise<void> {
-  const q = query(
-    collection(db, firestorePaths.assistantMessages(userId)),
-    limit(100)
-  );
-  const snap = await getDocs(q);
-  await Promise.all(snap.docs.map((d) => deleteDoc(d.ref)));
+  if (!userId) return;
 
-  const userRef = doc(db, firestorePaths.user(userId));
-  await updateDoc(userRef, {
-    "assistantStats.totalMessages": 0,
-    "assistantStats.lastUsedAt": null,
-  });
+  try {
+    const q = query(
+      collection(db, firestorePaths.assistantMessages(userId)),
+      limit(100)
+    );
+    const snap = await getDocs(q);
+    await Promise.all(snap.docs.map((d) => deleteDoc(d.ref)));
+  } catch {
+    /* empty or missing collection */
+  }
+
+  try {
+    const userRef = doc(db, firestorePaths.user(userId));
+    await updateDoc(userRef, {
+      "assistantStats.totalMessages": 0,
+      "assistantStats.lastUsedAt": null,
+    });
+  } catch {
+    /* assistantStats may not exist yet */
+  }
 }

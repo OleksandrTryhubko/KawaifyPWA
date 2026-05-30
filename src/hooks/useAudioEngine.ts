@@ -9,7 +9,7 @@ import {
   isLocalTrack,
   logLocalPlaybackDiagnostics,
 } from "../utils/trackAudioUrl";
-import { clamp01 } from "../utils/clamp01";
+import { clamp01, computeMasterGain } from "../utils/clamp01";
 import { useToast } from "./useToast";
 
 const DEV = import.meta.env.DEV;
@@ -58,16 +58,33 @@ export function useAudioEngine() {
     return active;
   };
 
-  const applyVolume = (track: typeof currentTrack) => {
-    if (!track) return;
-    if (isLocalTrack(track) && localAudioRef.current) {
-      localAudioRef.current.volume = clamp01(volume);
-    } else {
-      if (eqAudioRef.current) {
-        eqAudioRef.current.volume = 1;
-      }
-      audioEffectsService.setMasterGain(Math.max(0, equalizerMasterGain * volume));
+  const connectEqEffects = () => {
+    const eq = eqAudioRef.current;
+    if (!eq) return;
+    try {
+      audioEffectsService.connect(eq);
+      audioEffectsService.applyBands(equalizerBands);
+    } catch (e) {
+      console.warn("[Kawaify] Web Audio connect failed:", e);
     }
+  };
+
+  const applyVolume = () => {
+    const track = usePlayerStore.getState().currentTrack;
+    if (track && isLocalTrack(track)) {
+      const local = localAudioRef.current;
+      if (local) {
+        local.volume = clamp01(volume);
+      }
+      return;
+    }
+    const eq = eqAudioRef.current;
+    if (eq) {
+      eq.volume = clamp01(1);
+    }
+    audioEffectsService.setMasterGain(
+      computeMasterGain(equalizerMasterGain, volume)
+    );
   };
 
   const showAudiusUnavailableToast = (trackId: string) => {
@@ -111,11 +128,7 @@ export function useAudioEngine() {
     }
     if (!eqWiredRef.current && eqAudioRef.current) {
       eqWiredRef.current = true;
-      try {
-        audioEffectsService.connect(eqAudioRef.current);
-      } catch (e) {
-        console.warn("[Kawaify] Web Audio init failed:", e);
-      }
+      connectEqEffects();
     }
     syncPublicRef();
   }, []);
@@ -126,19 +139,17 @@ export function useAudioEngine() {
 
   useEffect(() => {
     if (!currentTrack || isLocalTrack(currentTrack)) return;
-    audioEffectsService.applyBands(equalizerBands);
-  }, [equalizerBands, currentTrack?.source]);
+    connectEqEffects();
+  }, [equalizerBands, currentTrack?.id, currentTrack?.source]);
 
   useEffect(() => {
-    applyVolume(currentTrack);
+    applyVolume();
     debugAudio({
       event: "volume",
       source: currentTrack?.source ?? null,
       volume,
-      audioVolume: isLocalTrack(currentTrack)
-        ? localAudioRef.current?.volume
-        : eqAudioRef.current?.volume,
-      masterGain: equalizerMasterGain * volume,
+      audioVolume: pickActive()?.volume,
+      masterGain: computeMasterGain(equalizerMasterGain, volume),
     });
   }, [equalizerMasterGain, volume, currentTrack?.source]);
 
@@ -146,7 +157,17 @@ export function useAudioEngine() {
     const audio = pickActive();
     if (!audio || !currentTrack) return;
 
-    const other = isLocalTrack(currentTrack) ? eqAudioRef.current : localAudioRef.current;
+    const isLocal = isLocalTrack(currentTrack);
+
+    if (isLocal && audioEffectsService.isConnectedTo(localAudioRef.current)) {
+      audioEffectsService.disconnect();
+      localAudioRef.current = new Audio();
+    }
+
+    const active = isLocal ? localAudioRef.current : eqAudioRef.current;
+    if (!active) return;
+
+    const other = isLocal ? eqAudioRef.current : localAudioRef.current;
     other?.pause();
 
     const gen = ++loadGenRef.current;
@@ -174,13 +195,15 @@ export function useAudioEngine() {
       const urlChanged = loadedTrackKeyRef.current !== trackKey;
 
       if (!urlChanged) {
-        applyVolume(currentTrack);
+        if (!isLocal) connectEqEffects();
+        applyVolume();
         syncPublicRef();
-        if (usePlayerStore.getState().isPlaying && audio.paused) {
+        if (usePlayerStore.getState().isPlaying && active.paused) {
           try {
-            await audio.play();
+            if (!isLocal) await audioEffectsService.resume();
+            await active.play();
           } catch (err) {
-            handlePlayFailure(err, currentTrack, audio, playableSrc);
+            handlePlayFailure(err, currentTrack, active, playableSrc);
           }
         }
         debugAudio({
@@ -189,23 +212,23 @@ export function useAudioEngine() {
           urlChanged: false,
           isPlaying: usePlayerStore.getState().isPlaying,
           volume,
-          audioVolume: audio.volume,
-          masterGain: equalizerMasterGain * volume,
+          audioVolume: active.volume,
+          masterGain: isLocal ? null : computeMasterGain(equalizerMasterGain, volume),
         });
         trackLoadingRef.current = false;
         return;
       }
 
-      applyAudioCrossOrigin(audio, playableSrc, currentTrack);
-      audio.muted = false;
-      applyVolume(currentTrack);
-
-      if (!isLocalTrack(currentTrack)) {
+      applyAudioCrossOrigin(active, playableSrc, currentTrack);
+      active.muted = false;
+      if (!isLocal) {
+        connectEqEffects();
         await audioEffectsService.resume();
       }
+      applyVolume();
 
-      audio.src = playableSrc;
-      audio.load();
+      active.src = playableSrc;
+      active.load();
       loadedTrackKeyRef.current = trackKey;
       syncPublicRef();
 
@@ -215,15 +238,16 @@ export function useAudioEngine() {
         urlChanged: true,
         isPlaying: usePlayerStore.getState().isPlaying,
         volume,
-        audioVolume: audio.volume,
-        masterGain: equalizerMasterGain * volume,
+        audioVolume: active.volume,
+        masterGain: isLocal ? null : computeMasterGain(equalizerMasterGain, volume),
       });
 
       if (usePlayerStore.getState().isPlaying) {
         try {
-          await audio.play();
+          if (!isLocal) await audioEffectsService.resume();
+          await active.play();
         } catch (err) {
-          handlePlayFailure(err, currentTrack, audio, playableSrc);
+          handlePlayFailure(err, currentTrack, active, playableSrc);
         }
       }
 
@@ -250,6 +274,7 @@ export function useAudioEngine() {
     const audio = pickActive();
     if (!audio || !currentTrack) return;
 
+    const isLocal = isLocalTrack(currentTrack);
     const wasPlaying = prevIsPlayingRef.current;
     prevIsPlayingRef.current = isPlaying;
 
@@ -259,7 +284,8 @@ export function useAudioEngine() {
       if (trackLoadingRef.current || !audio.src) return;
 
       const play = async () => {
-        if (!isLocalTrack(currentTrack)) {
+        if (!isLocal) {
+          connectEqEffects();
           await audioEffectsService.resume();
         }
         try {
@@ -279,7 +305,7 @@ export function useAudioEngine() {
       isPlaying,
       volume,
       audioVolume: audio.volume,
-      masterGain: equalizerMasterGain * volume,
+      masterGain: computeMasterGain(equalizerMasterGain, volume),
     });
   }, [isPlaying, setIsPlaying]);
 
