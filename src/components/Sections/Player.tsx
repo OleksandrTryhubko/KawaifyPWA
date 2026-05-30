@@ -14,7 +14,7 @@ const Player = () => {
   useListeningTracker();
   useRecordRecentlyPlayed();
   const { t } = useLanguage();
-  const { audioRef } = useAudioEngine();
+  useAudioEngine();
 
   const { currentTrack, togglePlayPause } = usePlayerStore((state) => ({
     currentTrack: state.currentTrack,
@@ -41,7 +41,7 @@ const Player = () => {
             </div>
           </div>
 
-          {hasTrack && <ProgressBar audio={audioRef} />}
+          {hasTrack && <ProgressBar />}
 
           <PlayerControls
             onTogglePlay={togglePlayPause}
@@ -52,7 +52,7 @@ const Player = () => {
 
         {/* Desktop layout */}
         <div className="hidden lg:flex flex-col gap-2 px-4 py-2">
-          {hasTrack && <ProgressBar audio={audioRef} />}
+          {hasTrack && <ProgressBar />}
 
           <div className="player-desktop-grid">
             <div className="player-left min-w-0">

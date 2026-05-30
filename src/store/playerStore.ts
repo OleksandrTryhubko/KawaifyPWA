@@ -43,8 +43,13 @@ interface UsePlayerStoreState {
   equalizerPresetId: string;
   queuePanelOpen: boolean;
   equalizerOpen: boolean;
+  /** Live playback position (not persisted). */
+  playbackCurrentTime: number;
+  playbackDuration: number;
 
   setIsPlaying: (value: boolean) => void;
+  setPlaybackProgress: (currentTime: number, duration: number) => void;
+  resetPlaybackProgress: () => void;
   togglePlayPause: () => void;
   setCurrentTrack: (track: Track) => Promise<void>;
   playTrack: (track: Track, options?: PlayTrackOptions) => Promise<void>;
@@ -158,6 +163,17 @@ export const usePlayerStore = create<UsePlayerStoreState>()(
       equalizerPresetId: "flat",
       queuePanelOpen: false,
       equalizerOpen: false,
+      playbackCurrentTime: 0,
+      playbackDuration: 0,
+
+      setPlaybackProgress: (currentTime, duration) =>
+        set({
+          playbackCurrentTime: Math.max(0, currentTime),
+          playbackDuration: Math.max(0, duration),
+        }),
+
+      resetPlaybackProgress: () =>
+        set({ playbackCurrentTime: 0, playbackDuration: 0 }),
 
       setIsPlaying: (value) => set({ isPlaying: value }),
       togglePlayPause: () => set((state) => ({ isPlaying: !state.isPlaying })),

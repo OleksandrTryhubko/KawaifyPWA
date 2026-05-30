@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePlayerStore } from "../store/playerStore";
 import { audioEffectsService } from "../features/audio-tools/audioEffectsService";
 import { audioElementRef } from "../lib/audioElementRef";
@@ -11,6 +11,7 @@ import {
 } from "../utils/trackAudioUrl";
 import { clamp01, computeMasterGain } from "../utils/clamp01";
 import { useToast } from "./useToast";
+import { usePlaybackProgressSync } from "./usePlaybackProgressSync";
 
 const DEV = import.meta.env.DEV;
 const AUDIUS_UNAVAILABLE_MSG = "This Audius track is unavailable. Try another one.";
@@ -35,7 +36,10 @@ export function useAudioEngine() {
   const loadedTrackKeyRef = useRef("");
   const prevIsPlayingRef = useRef(false);
   const lastErrorToastTrackIdRef = useRef<string | null>(null);
+  const [audioMountGeneration, setAudioMountGeneration] = useState(0);
   const toast = useToast();
+
+  const bumpAudioMount = () => setAudioMountGeneration((g) => g + 1);
 
   const currentTrack = usePlayerStore((s) => s.currentTrack);
   const isPlaying = usePlayerStore((s) => s.isPlaying);
@@ -55,8 +59,23 @@ export function useAudioEngine() {
     const active = pickActive();
     publicRef.current = active;
     audioElementRef.current = active;
+    if (active) {
+      const duration =
+        Number.isFinite(active.duration) && active.duration > 0
+          ? active.duration
+          : 0;
+      usePlayerStore
+        .getState()
+        .setPlaybackProgress(active.currentTime || 0, duration);
+    }
     return active;
   };
+
+  usePlaybackProgressSync(
+    eqAudioRef.current,
+    localAudioRef.current,
+    audioMountGeneration
+  );
 
   const connectEqEffects = () => {
     const eq = eqAudioRef.current;
@@ -131,6 +150,7 @@ export function useAudioEngine() {
       connectEqEffects();
     }
     syncPublicRef();
+    bumpAudioMount();
   }, []);
 
   useEffect(() => {
@@ -162,6 +182,7 @@ export function useAudioEngine() {
     if (isLocal && audioEffectsService.isConnectedTo(localAudioRef.current)) {
       audioEffectsService.disconnect();
       localAudioRef.current = new Audio();
+      bumpAudioMount();
     }
 
     const active = isLocal ? localAudioRef.current : eqAudioRef.current;

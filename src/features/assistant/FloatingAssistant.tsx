@@ -100,22 +100,16 @@ export default function FloatingAssistant() {
   return (
     <div className="fab-root pointer-events-none">
       {open && (
-        <>
-          <div
-            className="fab-backdrop pointer-events-auto lg:hidden"
-            onClick={() => setOpen(false)}
-            aria-hidden
-          />
           <div
             className={clsx(
-              "fab-panel pointer-events-auto kawaify-card shadow-2xl flex flex-col overflow-hidden",
-              "animate-scale-in border border-[var(--border)]"
+              "fab-panel pointer-events-auto flex flex-col overflow-hidden",
+              "animate-scale-in"
             )}
             role="dialog"
-            aria-modal="true"
+            aria-modal="false"
             aria-label={t("assistant.title")}
           >
-            <header className="flex items-center justify-between gap-2 px-4 py-3 border-b border-[var(--border)] shrink-0">
+            <header className="fab-panel-header flex items-center justify-between gap-2 px-4 py-3 border-b border-[var(--border)] shrink-0">
               <h2 className="text-base font-semibold bg-gradient-to-r from-pink-400 to-purple-400 bg-clip-text text-transparent">
                 {t("assistant.title")}
               </h2>
@@ -149,8 +143,8 @@ export default function FloatingAssistant() {
                   className={clsx(
                     "text-sm rounded-xl px-3 py-2 max-w-[92%]",
                     msg.role === "user"
-                      ? "ml-auto bg-pink-500/20 text-[var(--text)] border border-pink-500/25"
-                      : "mr-auto bg-[var(--surface-soft)] text-[var(--text)] border border-[var(--border)]"
+                      ? "ml-auto fab-msg-user border"
+                      : "mr-auto fab-msg-assistant border"
                   )}
                 >
                   <p className="whitespace-pre-wrap break-words">{msg.content}</p>
@@ -205,7 +199,6 @@ export default function FloatingAssistant() {
               </Button>
             </form>
           </div>
-        </>
       )}
 
       <button
