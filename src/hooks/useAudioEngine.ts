@@ -13,6 +13,7 @@ import { clamp01 } from "../utils/clamp01";
 import { useToast } from "./useToast";
 
 const DEV = import.meta.env.DEV;
+const AUDIUS_UNAVAILABLE_MSG = "This Audius track is unavailable. Try another one.";
 
 function debugAudio(payload: Record<string, unknown>): void {
   if (DEV) {
@@ -33,6 +34,7 @@ export function useAudioEngine() {
   const trackLoadingRef = useRef(false);
   const loadedTrackKeyRef = useRef("");
   const prevIsPlayingRef = useRef(false);
+  const lastErrorToastTrackIdRef = useRef<string | null>(null);
   const toast = useToast();
 
   const currentTrack = usePlayerStore((s) => s.currentTrack);
@@ -68,6 +70,12 @@ export function useAudioEngine() {
     }
   };
 
+  const showAudiusUnavailableToast = (trackId: string) => {
+    if (lastErrorToastTrackIdRef.current === trackId) return;
+    lastErrorToastTrackIdRef.current = trackId;
+    toast.error(AUDIUS_UNAVAILABLE_MSG);
+  };
+
   const handlePlayFailure = (
     err: unknown,
     track: typeof currentTrack,
@@ -84,9 +92,15 @@ export function useAudioEngine() {
     }
     if (track && isLocalTrack(track)) {
       toast.error("Cannot play this local track. Audio URL is missing or unavailable.");
+    } else if (track) {
+      showAudiusUnavailableToast(track.id);
     }
     setIsPlaying(false);
   };
+
+  useEffect(() => {
+    lastErrorToastTrackIdRef.current = null;
+  }, [currentTrack?.id]);
 
   useEffect(() => {
     if (!eqAudioRef.current) {
@@ -279,12 +293,14 @@ export function useAudioEngine() {
           audio.error?.message,
           audio.src
         );
+        if (pickActive() !== audio) return;
+
         if (currentTrack && isLocalTrack(currentTrack)) {
           logLocalPlaybackDiagnostics(currentTrack, audio.src, audio);
           toast.error("Cannot play this local track. Audio URL is missing or unavailable.");
           setIsPlaying(false);
-        } else if (code === MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED) {
-          toast.error("Cannot play this track. The audio format is not supported.");
+        } else if (currentTrack) {
+          showAudiusUnavailableToast(currentTrack.id);
           setIsPlaying(false);
         }
       };

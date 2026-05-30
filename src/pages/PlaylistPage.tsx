@@ -1,14 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { doc, getDoc } from "firebase/firestore";
 import { Shuffle, Play, Trash2 } from "lucide-react";
-import { db } from "../lib/firebase";
 import { useAuth } from "../hooks/useAuth";
 import { playTracksFromList, usePlayerStore } from "../store/playerStore";
 import { useToast } from "../hooks/useToast";
 import { updateUserPlaylists } from "../services/userService";
 import type { Playlist } from "../types/playlist";
 import type { Track } from "../types/track";
+import { resolveTracksByIds } from "../utils/resolveTrackById";
 import TrackArtwork from "../components/common/TrackArtwork";
 import TrackCard from "../components/common/TrackCard";
 import Button from "../components/ui/Button";
@@ -41,14 +40,8 @@ const PlaylistPage = () => {
         return;
       }
 
-      const loadedSongs = await Promise.all(
-        foundPlaylist.trackIds.map(async (trackId) => {
-          const trackSnap = await getDoc(doc(db, "songs", trackId));
-          return trackSnap.exists() ? (trackSnap.data() as Track) : null;
-        })
-      );
-
-      setSongs(loadedSongs.filter((s): s is Track => s !== null));
+      const loadedSongs = await resolveTracksByIds(user.uid, foundPlaylist.trackIds);
+      setSongs(loadedSongs);
     };
 
     fetchTracks();

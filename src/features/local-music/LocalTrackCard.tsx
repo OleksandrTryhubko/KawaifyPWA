@@ -1,5 +1,5 @@
 import { useRef, type ChangeEvent } from "react";
-import { ImagePlus, Trash2 } from "lucide-react";
+import { ImagePlus, Pencil, Trash2 } from "lucide-react";
 import TrackArtwork from "../../components/common/TrackArtwork";
 import Button from "../../components/ui/Button";
 import type { LocalTrackMetadataDoc } from "./types";
@@ -10,6 +10,7 @@ interface LocalTrackCardProps {
   busy?: boolean;
   onPlay?: (track: Track) => void;
   onDelete: () => void;
+  onRename?: () => void;
   onCoverUpload: (file: File) => void;
   formatMb: (bytes: number) => string;
   formatDate: (value: unknown) => string;
@@ -38,6 +39,7 @@ export default function LocalTrackCard({
   busy,
   onPlay,
   onDelete,
+  onRename,
   onCoverUpload,
   formatMb,
   formatDate,
@@ -109,6 +111,18 @@ export default function LocalTrackCard({
               onClick={() => onPlay(toPlayableLocalTrack(track))}
             >
               Play
+            </Button>
+          )}
+          {onRename && (
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              disabled={busy}
+              onClick={onRename}
+              leftIcon={<Pencil className="h-3.5 w-3.5" />}
+            >
+              Rename
             </Button>
           )}
           <Button

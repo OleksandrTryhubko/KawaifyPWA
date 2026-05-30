@@ -240,3 +240,16 @@ export async function deleteLocalTrackMetadata(
   await deleteDoc(localTrackDocRef(userId, trackId));
 }
 
+export async function updateLocalTrackMetadata(
+  userId: string,
+  trackId: string,
+  fields: { title?: string; artist?: string }
+): Promise<void> {
+  const payload: Record<string, unknown> = {
+    updatedAt: serverTimestamp(),
+  };
+  if (fields.title !== undefined) payload.title = fields.title.trim();
+  if (fields.artist !== undefined) payload.artist = fields.artist.trim();
+  await setDoc(localTrackDocRef(userId, trackId), payload, { merge: true });
+}
+

@@ -1,4 +1,6 @@
-import { useEffect, useState, type RefObject } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
+import { usePlayerStore } from "../../store/playerStore";
+import { parseDurationToSeconds } from "../../utils/duration";
 import { Slider } from "../Slider";
 
 interface ProgressBarProps {
@@ -14,31 +16,58 @@ function formatTime(time: number): string {
 }
 
 export default function ProgressBar({ audio, className = "" }: ProgressBarProps) {
+  const currentTrack = usePlayerStore((s) => s.currentTrack);
+  const trackKey = currentTrack
+    ? `${currentTrack.id}:${currentTrack.source}`
+    : "";
+
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [seeking, setSeeking] = useState(false);
+  const seekingRef = useRef(false);
 
   useEffect(() => {
+    setCurrentTime(0);
+    setDuration(0);
+    setSeeking(false);
+    seekingRef.current = false;
+
+    if (currentTrack?.duration) {
+      const fallback = parseDurationToSeconds(currentTrack.duration);
+      if (fallback > 0) setDuration(fallback);
+    }
+  }, [trackKey, currentTrack?.duration]);
+
+  useEffect(() => {
+    if (!trackKey) return;
+
     const el = audio.current;
     if (!el) return;
 
-    const onTimeUpdate = () => {
-      if (!seeking) setCurrentTime(el.currentTime);
+    const syncDuration = () => {
+      const d = el.duration;
+      if (Number.isFinite(d) && d > 0) {
+        setDuration(d);
+      }
     };
-    const onLoaded = () => setDuration(el.duration || 0);
-    const onDurationChange = () => setDuration(el.duration || 0);
+
+    const onTimeUpdate = () => {
+      if (!seekingRef.current) setCurrentTime(el.currentTime);
+    };
 
     el.addEventListener("timeupdate", onTimeUpdate);
-    el.addEventListener("loadedmetadata", onLoaded);
-    el.addEventListener("durationchange", onDurationChange);
-    onLoaded();
+    el.addEventListener("loadedmetadata", syncDuration);
+    el.addEventListener("durationchange", syncDuration);
+
+    setCurrentTime(el.currentTime || 0);
+    syncDuration();
 
     return () => {
       el.removeEventListener("timeupdate", onTimeUpdate);
-      el.removeEventListener("loadedmetadata", onLoaded);
-      el.removeEventListener("durationchange", onDurationChange);
+      el.removeEventListener("loadedmetadata", syncDuration);
+      el.removeEventListener("durationchange", syncDuration);
     };
-  }, [audio, seeking]);
+  }, [audio, trackKey]);
 
   const max = duration > 0 ? duration : 100;
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
@@ -63,11 +92,15 @@ export default function ProgressBar({ audio, className = "" }: ProgressBarProps)
           className="player-progress-slider w-full"
           onValueChange={(value) => {
             const [t] = value;
+            seekingRef.current = true;
             setSeeking(true);
             setCurrentTime(t);
             if (audio.current) audio.current.currentTime = t;
           }}
-          onValueCommit={() => setSeeking(false)}
+          onValueCommit={() => {
+            seekingRef.current = false;
+            setSeeking(false);
+          }}
         />
       </div>
 

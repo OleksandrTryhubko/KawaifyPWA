@@ -16,8 +16,10 @@ import {
   getUserLocalTracksTotalSize,
   uploadLocalTrack,
   uploadLocalTrackCover,
+  updateLocalTrackMetadata,
 } from "./localTracksMetadataService";
 import LocalTrackCard, { toPlayableLocalTrack } from "./LocalTrackCard";
+import { usePlayerStore } from "../../store/playerStore";
 
 interface LocalMusicImportProps {
   userId: string;
@@ -181,6 +183,43 @@ export default function LocalMusicImport({
     }
   };
 
+  const handleRename = async (track: LocalTrackMetadataDoc) => {
+    const nextTitle = window.prompt("Track title", track.title)?.trim();
+    if (!nextTitle || nextTitle === track.title) return;
+
+    const nextArtist = window.prompt("Artist", track.artist)?.trim();
+    if (!nextArtist) {
+      toast.error("Artist name is required");
+      return;
+    }
+
+    setBusyTrackId(track.id);
+    try {
+      await updateLocalTrackMetadata(userId, track.id, {
+        title: nextTitle,
+        artist: nextArtist,
+      });
+      await refresh();
+
+      const { currentTrack } = usePlayerStore.getState();
+      if (currentTrack?.id === track.id && currentTrack.source === "local") {
+        usePlayerStore.setState({
+          currentTrack: toPlayableLocalTrack({
+            ...track,
+            title: nextTitle,
+            artist: nextArtist,
+          }),
+        });
+      }
+
+      toast.success("Track renamed");
+    } catch {
+      toast.error("Failed to rename track");
+    } finally {
+      setBusyTrackId(null);
+    }
+  };
+
   const uploadControl = (
     <>
       <input
@@ -284,6 +323,7 @@ export default function LocalMusicImport({
                   busy={busyTrackId === track.id}
                   onPlay={onPlayTrack}
                   onDelete={() => setDeleteTarget(track)}
+                  onRename={() => void handleRename(track)}
                   onCoverUpload={(file) => void handleCoverUpload(track, file)}
                   formatMb={formatMb}
                   formatDate={formatCreatedAt}

@@ -1,13 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { Trash2 } from "lucide-react";
-import { doc, getDoc } from "firebase/firestore";
 import { useAuth } from "../hooks/useAuth";
-import { db } from "../lib/firebase";
 import { playTracksFromList } from "../store/playerStore";
 import { toggleFavoriteTrack } from "../services/userService";
 import { useToast } from "../hooks/useToast";
 import { useLanguage } from "../hooks/useLanguage";
 import type { Track } from "../types/track";
+import { resolveTracksByIds } from "../utils/resolveTrackById";
 import TrackCard from "../components/common/TrackCard";
 import Button from "../components/ui/Button";
 import ConfirmDialog from "../components/ui/ConfirmDialog";
@@ -30,17 +29,8 @@ const FavoritesPage = () => {
       return;
     }
     const fetchSongs = async () => {
-      const loaded = await Promise.all(
-        user.favorites.map(async (id) => {
-          const snap = await getDoc(doc(db, "songs", id));
-          if (!snap.exists()) {
-            console.warn("[Kawaify favorites] missing song doc:", id);
-            return null;
-          }
-          return snap.data() as Track;
-        })
-      );
-      setSongs(loaded.filter((s): s is Track => s !== null));
+      const loaded = await resolveTracksByIds(user.uid, user.favorites);
+      setSongs(loaded);
     };
 
     void fetchSongs();
@@ -83,11 +73,6 @@ const FavoritesPage = () => {
           </h1>
           <p className="text-sm kawaify-text-muted mt-1">
             {t("favorites.count", { count: user?.favorites?.length ?? songs.length })}
-            {user && user.favorites.length > songs.length && (
-              <span className="block text-xs mt-0.5">
-                ({songs.length} loaded — {user.favorites.length - songs.length} missing metadata)
-              </span>
-            )}
           </p>
         </div>
         {songs.length > 0 && (
