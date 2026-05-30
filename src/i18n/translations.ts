@@ -106,6 +106,7 @@ const en = {
   "common.close": "Close",
   "common.confirm": "Confirm",
   "common.delete": "Delete",
+  "eq.audiusOnly": "Equalizer is available for Audius tracks only",
 } as const;
 
 const uk: Record<keyof typeof en, string> = {
@@ -212,6 +213,7 @@ const uk: Record<keyof typeof en, string> = {
   "common.close": "Закрити",
   "common.confirm": "Підтвердити",
   "common.delete": "Видалити",
+  "eq.audiusOnly": "Еквалайзер доступний лише для треків Audius",
 };
 
 export type TranslationKey = keyof typeof en;
