@@ -14,15 +14,20 @@ import {
   Timestamp,
   type QueryDocumentSnapshot,
 } from "firebase/firestore";
-import { db } from "../lib/firebase";
+import { onAuthStateChanged } from "firebase/auth";
+import { auth, db } from "../lib/firebase";
 import { firestorePaths } from "../lib/firestorePaths";
 import {
   assistantConfig,
+  getCloudFunctionUrl,
   isGeminiAssistantEnabled,
 } from "../config/assistantConfig";
 import type { AssistantMessage } from "../features/assistant/types";
 
 const MESSAGE_LIMIT = 50;
+const ASSISTANT_UNAVAILABLE = "Assistant temporarily unavailable";
+const ASSISTANT_URL_NOT_CONFIGURED = "Assistant URL is not configured";
+const ASSISTANT_SIGN_IN_REQUIRED = "Please sign in to use Kawaify AI";
 
 export interface AssistantStats {
   totalMessages: number;
@@ -66,7 +71,7 @@ export function parseAssistantStats(
   };
 }
 
-/** Mock responses — used when provider is "mock". */
+/** Mock responses — only when provider === "mock". */
 async function sendMockMessage(message: string): Promise<string> {
   const text = message.trim().toLowerCase();
 
@@ -113,47 +118,109 @@ Genres:
 - "Create playlist idea"`;
 }
 
+/** Resolve Firebase ID token (waits briefly for auth sync after login). */
+async function resolveIdToken(userId?: string): Promise<string | null> {
+  const immediate = auth.currentUser;
+  if (immediate && (!userId || immediate.uid === userId)) {
+    return immediate.getIdToken();
+  }
+
+  return new Promise((resolve) => {
+    const timeout = window.setTimeout(() => {
+      unsubscribe();
+      resolve(null);
+    }, 5000);
+
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      window.clearTimeout(timeout);
+      unsubscribe();
+      if (!firebaseUser) {
+        resolve(null);
+        return;
+      }
+      if (userId && firebaseUser.uid !== userId) {
+        resolve(null);
+        return;
+      }
+      void firebaseUser.getIdToken().then(resolve).catch(() => resolve(null));
+    });
+  });
+}
+
 /**
- * Future Gemini path — call Cloud Function, NOT the Gemini API from React.
- *
- * Production: React → Firebase Auth (ID token) → Cloud Function → Gemini API
+ * Gemini via Cloud Function — never call the Gemini API from React.
  */
 async function sendGeminiMessage(
   message: string,
   userId?: string
 ): Promise<string> {
-  const url = assistantConfig.cloudFunctionUrl?.trim();
+  const url = getCloudFunctionUrl();
+
+  console.debug("[Kawaify AI] Gemini enabled:", isGeminiAssistantEnabled());
+  console.debug("[Kawaify AI] provider:", assistantConfig.provider);
+  console.debug("[Kawaify AI] cloudFunctionUrl:", url);
+  console.debug("[Kawaify AI] env VITE_ASSISTANT_API_URL:", import.meta.env.VITE_ASSISTANT_API_URL);
+  console.debug("[Kawaify AI] currentUser:", auth.currentUser?.uid);
+  console.debug("[Kawaify AI] userId arg:", userId);
+
   if (!url) {
-    throw new Error("Assistant Cloud Function URL is not configured");
+    console.error("[Kawaify AI] Assistant URL is not configured");
+    return ASSISTANT_URL_NOT_CONFIGURED;
   }
 
-  // Placeholder for future implementation:
-  // const token = await auth.currentUser?.getIdToken();
-  // const res = await fetch(url, {
-  //   method: "POST",
-  //   headers: {
-  //     "Content-Type": "application/json",
-  //     Authorization: `Bearer ${token}`,
-  //   },
-  //   body: JSON.stringify({ message, userId }),
-  // });
-  // if (!res.ok) throw new Error("Assistant request failed");
-  // const data = (await res.json()) as { reply: string };
-  // return data.reply;
+  const token = await resolveIdToken(userId);
+  if (!token) {
+    console.error("[Kawaify AI] No Firebase user / ID token for assistant request");
+    return ASSISTANT_SIGN_IN_REQUIRED;
+  }
 
-  void userId;
-  void message;
-  throw new Error("Gemini assistant is not enabled yet");
+  try {
+    console.debug("[Kawaify AI] POST assistantChat started");
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({message: message.trim()}),
+    });
+
+    console.debug("[Kawaify AI] POST assistantChat status:", res.status);
+
+    if (!res.ok) {
+      const errorText = await res.text().catch(() => "");
+      console.error(
+        "[Kawaify AI] Cloud Function error:",
+        res.status,
+        errorText
+      );
+      return ASSISTANT_UNAVAILABLE;
+    }
+
+    const data = (await res.json()) as {reply?: unknown};
+    const reply = typeof data.reply === "string" ? data.reply.trim() : "";
+    if (!reply) {
+      console.error("[Kawaify AI] Empty reply from Cloud Function");
+      return ASSISTANT_UNAVAILABLE;
+    }
+    return reply;
+  } catch (error) {
+    console.error("[Kawaify AI] Gemini request failed:", error);
+    return ASSISTANT_UNAVAILABLE;
+  }
 }
 
 /**
  * Send a user message and receive an assistant reply.
- * Routes by assistantConfig.provider — UI stays unchanged when switching mock → gemini.
  */
 export async function sendMessage(
   message: string,
   userId?: string
 ): Promise<string> {
+  console.debug("[Kawaify AI] sendMessage called");
+  console.debug("[Kawaify AI] Gemini enabled:", isGeminiAssistantEnabled());
+  console.debug("[Kawaify AI] provider:", assistantConfig.provider);
+
   if (isGeminiAssistantEnabled()) {
     return sendGeminiMessage(message, userId);
   }
@@ -175,7 +242,6 @@ export async function loadAssistantMessages(
     const snap = await getDocs(q);
     return snap.docs.map(mapMessage).reverse();
   } catch {
-    /* collection may not exist yet or rules offline */
     return [];
   }
 }
@@ -189,7 +255,7 @@ async function updateAssistantStats(userId: string): Promise<void> {
       "assistantStats.lastUsedAt": serverTimestamp(),
     });
   } catch {
-    /* stats field may not exist yet — non-fatal */
+    /* non-fatal */
   }
 }
 
@@ -219,10 +285,12 @@ export async function sendAssistantMessage(
   userId: string,
   userMessage: string
 ): Promise<{ user: AssistantMessage; assistant: AssistantMessage }> {
+  console.debug("[Kawaify AI] sendAssistantMessage called", {userId});
+
   const user = await saveAssistantMessage(userId, "user", userMessage);
   const replyText = await sendMessage(userMessage, userId);
   const assistant = await saveAssistantMessage(userId, "assistant", replyText);
-  return { user, assistant };
+  return {user, assistant};
 }
 
 export async function getAssistantStats(userId: string): Promise<AssistantStats> {
@@ -250,7 +318,7 @@ export async function clearAssistantHistory(userId: string): Promise<void> {
     const snap = await getDocs(q);
     await Promise.all(snap.docs.map((d) => deleteDoc(d.ref)));
   } catch {
-    /* empty or missing collection */
+    /* empty */
   }
 
   try {
@@ -260,6 +328,6 @@ export async function clearAssistantHistory(userId: string): Promise<void> {
       "assistantStats.lastUsedAt": null,
     });
   } catch {
-    /* assistantStats may not exist yet */
+    /* non-fatal */
   }
 }

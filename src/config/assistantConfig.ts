@@ -1,22 +1,27 @@
 /**
  * Assistant provider configuration.
  *
- * Production architecture (do NOT call Gemini from React directly):
- *   React → Firebase Auth → Cloud Function → Gemini API
- *
- * The API key belongs on the server / Cloud Function env, not in the client bundle.
- * VITE_GEMINI_API_KEY in .env.example is documentation only for future backend setup.
+ * Production: React → Firebase Auth → Cloud Function → Gemini API
+ * API key lives only on the server (GEMINI_API_KEY secret).
  */
 export type AssistantProvider = "mock" | "gemini";
 
+/** Deployed assistantChat endpoint (fallback when VITE_* is missing in bundle). */
+export const DEFAULT_ASSISTANT_API_URL =
+  "https://us-central1-kawaify-pwa.cloudfunctions.net/assistantChat";
+
 export const assistantConfig = {
-  /** Active provider: "mock" today; switch to "gemini" when Cloud Function is ready. */
-  provider: "mock" as AssistantProvider,
-  /** When true, sendMessage routes through the backend Gemini proxy (not implemented yet). */
-  geminiEnabled: false,
-  /** Future Cloud Function endpoint — e.g. https://us-central1-PROJECT.cloudfunctions.net/assistantChat */
-  cloudFunctionUrl: import.meta.env.VITE_ASSISTANT_API_URL ?? "",
+  provider: "gemini" as AssistantProvider,
+  geminiEnabled: true,
 } as const;
+
+/** Read URL at call time so dev .env changes apply after HMR/restart. */
+export function getCloudFunctionUrl(): string {
+  const fromEnv = import.meta.env.VITE_ASSISTANT_API_URL;
+  const trimmed =
+    typeof fromEnv === "string" ? fromEnv.trim() : "";
+  return trimmed || DEFAULT_ASSISTANT_API_URL;
+}
 
 export function isGeminiAssistantEnabled(): boolean {
   return assistantConfig.provider === "gemini" && assistantConfig.geminiEnabled;
