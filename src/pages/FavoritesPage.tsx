@@ -6,6 +6,7 @@ import { db } from "../lib/firebase";
 import { playTracksFromList } from "../store/playerStore";
 import { toggleFavoriteTrack } from "../services/userService";
 import { useToast } from "../hooks/useToast";
+import { useLanguage } from "../hooks/useLanguage";
 import type { Track } from "../types/track";
 import TrackCard from "../components/common/TrackCard";
 import Button from "../components/ui/Button";
@@ -21,21 +22,29 @@ const FavoritesPage = () => {
   const [removeTarget, setRemoveTarget] = useState<Track | null>(null);
   const [busy, setBusy] = useState(false);
   const toast = useToast();
+  const { t } = useLanguage();
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      setSongs([]);
+      return;
+    }
     const fetchSongs = async () => {
       const loaded = await Promise.all(
         user.favorites.map(async (id) => {
           const snap = await getDoc(doc(db, "songs", id));
-          return snap.exists() ? (snap.data() as Track) : null;
+          if (!snap.exists()) {
+            console.warn("[Kawaify favorites] missing song doc:", id);
+            return null;
+          }
+          return snap.data() as Track;
         })
       );
       setSongs(loaded.filter((s): s is Track => s !== null));
     };
 
-    fetchSongs();
-  }, [user]);
+    void fetchSongs();
+  }, [user?.uid, user?.favorites]);
 
   const sortedSongs = useMemo(() => {
     const dir: SortDirection = sort.endsWith("desc") ? "desc" : "asc";
@@ -70,10 +79,15 @@ const FavoritesPage = () => {
       <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-5">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-pink-400 to-purple-400 bg-clip-text text-transparent">
-            ♥ Favorite songs
+            ♥ {t("favorites.title")}
           </h1>
           <p className="text-sm kawaify-text-muted mt-1">
-            {songs.length} track{songs.length === 1 ? "" : "s"} saved
+            {t("favorites.count", { count: user?.favorites?.length ?? songs.length })}
+            {user && user.favorites.length > songs.length && (
+              <span className="block text-xs mt-0.5">
+                ({songs.length} loaded — {user.favorites.length - songs.length} missing metadata)
+              </span>
+            )}
           </p>
         </div>
         {songs.length > 0 && (

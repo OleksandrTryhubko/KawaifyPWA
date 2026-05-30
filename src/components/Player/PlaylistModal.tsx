@@ -147,20 +147,21 @@ const PlaylistModal = ({ open, onClose }: PlaylistModalProps) => {
         coverPath = uploaded.coverPath;
       }
 
+      const trimmedDesc = description.trim();
       const newPlaylist: Playlist = {
         id: playlistId,
         title: trimmed,
-        description: description.trim() || undefined,
         accentColor,
         coverUrl,
-        coverPath,
         image: coverUrl,
         createdAt: new Date(),
         updatedAt: new Date(),
         trackIds: currentTrack ? [currentTrack.id] : [],
+        ...(trimmedDesc ? { description: trimmedDesc } : {}),
+        ...(coverPath ? { coverPath } : {}),
       };
 
-      const result = await addUserPlaylist(user.uid, newPlaylist);
+      const result = await addUserPlaylist(user.uid, newPlaylist as Playlist);
 
       switch (result) {
         case "created":

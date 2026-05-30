@@ -7,12 +7,15 @@ import { uploadUserAvatar } from "./accountService";
 import LocalMusicImport from "../local-music/LocalMusicImport";
 import ProfileStatsGrid from "../../components/account/ProfileStatsGrid";
 import UserActivityBlock from "../../components/account/UserActivityBlock";
+import AssistantAccountBlock from "../../components/account/AssistantAccountBlock";
+import { useLanguage } from "../../hooks/useLanguage";
 import { getUserLocalTracks } from "../local-music/localTracksMetadataService";
 
 export default function AccountPage() {
   const { user, logout, refreshUser } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
+  const { t } = useLanguage();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -29,7 +32,7 @@ export default function AccountPage() {
 
   const handleSignOut = async () => {
     await logout();
-    toast.info("До зустрічі! ♪");
+    toast.info(t("toast.goodbye"));
     navigate("/");
   };
 
@@ -48,13 +51,13 @@ export default function AccountPage() {
 
     const allowed = ["image/png", "image/jpeg", "image/webp"];
     if (!allowed.includes(file.type)) {
-      toast.error("Підтримуються PNG, JPG або WEBP");
+      toast.error(t("toast.fileType"));
       return;
     }
 
     const maxBytes = 2 * 1024 * 1024;
     if (file.size > maxBytes) {
-      toast.error("Файл завеликий (макс. 2 MB)");
+      toast.error(t("toast.fileSize"));
       return;
     }
 
@@ -69,9 +72,9 @@ export default function AccountPage() {
       await uploadUserAvatar(user.uid, selectedFile);
       await refreshUser();
       setSelectedFile(null);
-      toast.success("Аватар оновлено успішно ♪");
+      toast.success(t("toast.avatarUpdated"));
     } catch {
-      toast.error("Не вдалося завантажити аватар. Спробуй ще раз.");
+      toast.error(t("toast.avatarError"));
     } finally {
       setUploading(false);
     }
@@ -95,10 +98,10 @@ export default function AccountPage() {
             🔒
           </span>
           <h1 className="text-2xl font-bold mt-4 bg-gradient-to-r from-pink-400 to-purple-400 bg-clip-text text-transparent">
-            Потрібен вхід
+            {t("account.signInRequired")}
           </h1>
           <p className="kawaify-text-muted text-sm mt-3">
-            Будь ласка, увійдіть, щоб подивитися свій акаунт.
+            {t("account.signInHint")}
           </p>
         </div>
       </div>
@@ -148,7 +151,7 @@ export default function AccountPage() {
                     disabled={uploading}
                   />
                   <span className="text-xs px-3 py-1 rounded-full kawaify-surface border border-[var(--border)] text-[var(--text)] hover:opacity-90 transition cursor-pointer">
-                    Upload avatar
+                    {t("account.uploadAvatar")}
                   </span>
                 </label>
 
@@ -160,7 +163,7 @@ export default function AccountPage() {
                     disabled={uploading}
                     onClick={handleUploadAvatar}
                   >
-                    {uploading ? "Uploading…" : "Save"}
+                    {uploading ? t("common.loading") : t("account.save")}
                   </Button>
                 )}
 
@@ -172,7 +175,7 @@ export default function AccountPage() {
                     disabled={uploading}
                     onClick={() => setSelectedFile(null)}
                   >
-                    Cancel
+                    {t("account.cancel")}
                   </Button>
                 )}
               </div>
@@ -183,10 +186,12 @@ export default function AccountPage() {
 
           <div className="mt-5 flex justify-end">
             <Button type="button" variant="danger" size="sm" onClick={handleSignOut}>
-              Sign out
+              {t("account.signOut")}
             </Button>
           </div>
         </div>
+
+        <AssistantAccountBlock />
 
         <LocalMusicImport
           userId={user.uid}
@@ -197,15 +202,6 @@ export default function AccountPage() {
 
         <UserActivityBlock />
 
-        <div className="kawaify-card p-4 flex items-start gap-3">
-          <span className="text-xl shrink-0" aria-hidden>
-            ✨
-          </span>
-          <p className="text-sm kawaify-text-muted">
-            <span className="font-medium text-[var(--text)]">Kawaify AI</span> is
-            available from the bottom-right button.
-          </p>
-        </div>
       </div>
     </div>
   );

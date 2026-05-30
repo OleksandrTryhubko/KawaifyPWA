@@ -1,12 +1,18 @@
 import { useState, useEffect } from "react";
+import clsx from "clsx";
 import { usePlayerStore } from "../../store/playerStore";
 import { toggleFavoriteTrack } from "../../services/userService";
 import { useAuth } from "../../hooks/useAuth";
 import { useToast } from "../../hooks/useToast";
 import { AiOutlineHeart, AiFillHeart } from "react-icons/ai";
 
-const FavoriteButton = () => {
-  const { currentTrack } = usePlayerStore();
+interface FavoriteButtonProps {
+  className?: string;
+  iconSize?: number;
+}
+
+const FavoriteButton = ({ className, iconSize = 20 }: FavoriteButtonProps) => {
+  const { currentTrack, setCurrentTrack } = usePlayerStore();
   const { user, refreshUser } = useAuth();
   const toast = useToast();
   const [isFavorite, setIsFavorite] = useState(false);
@@ -18,9 +24,10 @@ const FavoriteButton = () => {
       return;
     }
     setIsFavorite(user.favorites?.includes(currentTrack.id) ?? false);
-  }, [user, currentTrack]);
+  }, [user?.favorites, currentTrack?.id]);
 
-  const handleToggle = async () => {
+  const handleToggle = async (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (!user || !currentTrack || busy) return;
 
     if (isFavorite) {
@@ -29,9 +36,9 @@ const FavoriteButton = () => {
         await toggleFavoriteTrack(user.uid, currentTrack.id);
         setIsFavorite(false);
         await refreshUser();
-        toast.info("Трек видалено з обраного");
+        toast.info("Removed from favorites");
       } catch {
-        toast.error("Помилка при збереженні");
+        toast.error("Could not save");
       } finally {
         setBusy(false);
       }
@@ -39,7 +46,7 @@ const FavoriteButton = () => {
     }
 
     if (user.favorites?.includes(currentTrack.id)) {
-      toast.warning("Трек вже є в обраному");
+      toast.warning("Already in favorites");
       setIsFavorite(true);
       return;
     }
@@ -48,34 +55,48 @@ const FavoriteButton = () => {
     try {
       const result = await toggleFavoriteTrack(user.uid, currentTrack.id);
       if (result === "added") {
+        await setCurrentTrack(currentTrack);
         setIsFavorite(true);
         await refreshUser();
-        toast.success("Трек додано в обране");
+        toast.success("Added to favorites");
       } else {
-        toast.warning("Трек вже є в обраному");
+        toast.warning("Already in favorites");
         setIsFavorite(true);
       }
     } catch {
-      toast.error("Помилка при збереженні");
+      toast.error("Could not save");
     } finally {
       setBusy(false);
     }
   };
 
-  if (!currentTrack) return null;
+  if (!currentTrack) {
+    return (
+      <span
+        className={clsx("inline-flex items-center justify-center opacity-30", className)}
+        aria-hidden
+      >
+        <AiOutlineHeart size={iconSize} />
+      </span>
+    );
+  }
 
   return (
     <button
       type="button"
       onClick={handleToggle}
       disabled={busy || !user}
-      className="text-white disabled:opacity-50"
-      aria-label={isFavorite ? "Видалити з обраного" : "Додати в обране"}
+      className={clsx(
+        "inline-flex items-center justify-center rounded-full transition-colors",
+        "hover:bg-white/10 disabled:opacity-40 min-w-[40px] min-h-[40px] sm:min-w-[44px] sm:min-h-[44px]",
+        className
+      )}
+      aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
     >
       {isFavorite ? (
-        <AiFillHeart size={24} className="text-pink-500" />
+        <AiFillHeart size={iconSize} className="text-pink-500" />
       ) : (
-        <AiOutlineHeart size={24} />
+        <AiOutlineHeart size={iconSize} className="text-[var(--text-muted)]" />
       )}
     </button>
   );

@@ -4,6 +4,8 @@ import { X } from "lucide-react";
 import SideMenuItem from "./SideMenuItem";
 import YourLibraryList from "./YourLibraryList";
 import ThemeToggle from "./ui/ThemeToggle";
+import LanguageToggle from "./ui/LanguageToggle";
+import { useLanguage } from "../hooks/useLanguage";
 import Button from "./ui/Button";
 import kawaifyLogo from "../icons/kawaify-logo.png";
 import { useAuth } from "../hooks/useAuth";
@@ -15,6 +17,7 @@ interface MobileMenuProps {
 
 const MobileMenu = ({ open, onClose }: MobileMenuProps) => {
   const { user, logout } = useAuth();
+  const { t } = useLanguage();
 
   useEffect(() => {
     if (!open) return;
@@ -85,25 +88,26 @@ const MobileMenu = ({ open, onClose }: MobileMenuProps) => {
 
         <div className="flex-1 overflow-y-auto pb-8">
           <nav className="p-4 flex flex-col gap-4">
-            <div className="flex justify-end">
+            <div className="flex justify-end gap-2">
+              <LanguageToggle compact />
               <ThemeToggle compact />
             </div>
 
             <ul className="list-none p-0 m-0 flex flex-col gap-1">
-              <SideMenuItem href="/" text="Home" onNavigate={handleNavigate} />
+              <SideMenuItem href="/" text={t("nav.home")} onNavigate={handleNavigate} />
               {!user && (
-                <SideMenuItem href="/login" text="Login" onNavigate={handleNavigate} />
+                <SideMenuItem href="/login" text={t("nav.login")} onNavigate={handleNavigate} />
               )}
               {!user && (
-                <SideMenuItem href="/register" text="Register" onNavigate={handleNavigate} />
+                <SideMenuItem href="/register" text={t("nav.register")} onNavigate={handleNavigate} />
               )}
               {user && (
-                <SideMenuItem href="/account" text="Account" onNavigate={handleNavigate} />
+                <SideMenuItem href="/account" text={t("nav.account")} onNavigate={handleNavigate} />
               )}
             </ul>
 
             <div className="border-t border-[var(--border)] pt-3">
-              <span className="text-sm kawaify-text-muted px-3">Your Library</span>
+              <span className="text-sm kawaify-text-muted px-3">{t("nav.yourLibrary")}</span>
               <ul className="mt-2 flex flex-col gap-1">
                 <YourLibraryList onNavigate={handleNavigate} />
               </ul>
@@ -116,7 +120,7 @@ const MobileMenu = ({ open, onClose }: MobileMenuProps) => {
                     size="sm"
                     onClick={handleSignOut}
                   >
-                    Sign out
+                    {t("nav.signOut")}
                   </Button>
                 </div>
               )}

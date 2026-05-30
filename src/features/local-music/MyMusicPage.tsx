@@ -9,14 +9,13 @@ import type { Track } from "../../types/track";
 export default function MyMusicPage() {
   const { user, loading } = useAuth();
   const toast = useToast();
-  const { setCurrentTrack, setIsPlaying } = usePlayerStore();
+  const { playTrack } = usePlayerStore();
 
   const handlePlayLocalTrack = async (track: Track) => {
     try {
-      await setCurrentTrack(track);
-      setIsPlaying(true);
+      await playTrack(track);
     } catch {
-      toast.error("Не вдалося запустити локальний трек");
+      toast.error("Cannot play this local track. Audio URL is missing or unavailable.");
     }
   };
 

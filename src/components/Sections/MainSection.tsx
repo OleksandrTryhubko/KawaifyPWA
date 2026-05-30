@@ -8,6 +8,7 @@ import {
 } from "../../api/audius";
 import type { AudiusTrack } from "../../types/audius";
 import { useAuth } from "../../hooks/useAuth";
+import { useLanguage } from "../../hooks/useLanguage";
 import { usePlayerStore } from "../../store/playerStore";
 import Greeting from "../Greeting";
 import TrackCard from "../common/TrackCard";
@@ -64,6 +65,7 @@ const MainSection = () => {
   const [searchSort, setSearchSort] = useState<SearchSort>("relevance");
   const [filterField, setFilterField] = useState<FilterField>("all");
   const { playTrack } = usePlayerStore();
+  const { t } = useLanguage();
 
   const isSearchMode = debounced.length > 0;
 
@@ -81,7 +83,7 @@ const MainSection = () => {
       setShownIds(res.map((t) => t.id));
     } catch {
       setTracks([]);
-      setLoadError("Audius недоступний. Спробуй ще раз трохи пізніше.");
+        setLoadError(t("home.audiusError"));
     } finally {
       setIsLoading(false);
     }
@@ -96,7 +98,7 @@ const MainSection = () => {
       setShownIds(res.map((t) => t.id));
     } catch {
       setTracks([]);
-      setLoadError("Audius недоступний. Спробуй ще раз трохи пізніше.");
+        setLoadError(t("home.audiusError"));
     } finally {
       setIsLoading(false);
     }
@@ -197,7 +199,7 @@ const MainSection = () => {
                 <input
                   value={searchText}
                   onChange={(e) => setSearchText(e.target.value)}
-                  placeholder="Search tracks, artists, genres…"
+                  placeholder={t("home.searchPlaceholder")}
                   className="w-full bg-transparent outline-none text-[var(--text)] placeholder:text-[var(--text-muted)]"
                   aria-label="Search tracks"
                 />
@@ -212,7 +214,7 @@ const MainSection = () => {
               className="sm:min-w-[100px] shrink-0"
               leftIcon={<X className="h-4 w-4" />}
             >
-              Clear
+              {t("home.clear")}
             </Button>
           </div>
 
@@ -248,7 +250,7 @@ const MainSection = () => {
         {!isSearchMode && (
           <>
             <p className="text-xs kawaify-text-muted mb-3">
-              Рекомендації для тебе — випадковий підбір популярних треків
+              {t("home.recommendations")}
             </p>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
               {GENRES.map((g) => (
@@ -290,9 +292,9 @@ const MainSection = () => {
 
         {!isLoading && !loadError && displayTracks.length === 0 && (
           <div className="mb-4 home-notice rounded-xl p-5">
-            <p className="font-semibold text-[var(--text)]">Нічого не знайдено</p>
+            <p className="font-semibold text-[var(--text)]">{t("home.notFound")}</p>
             <p className="text-sm mt-1 kawaify-text-muted">
-              Спробуй інший запит, фільтр або жанр.
+              {t("home.notFoundHint")}
             </p>
           </div>
         )}
@@ -320,7 +322,7 @@ const MainSection = () => {
               disabled={isLoadingMore}
               className="min-w-[160px]"
             >
-              {isLoadingMore ? "Завантаження…" : "Завантажити ще"}
+              {isLoadingMore ? t("home.loading") : t("home.loadMore")}
             </Button>
           </div>
         )}

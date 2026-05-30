@@ -5,12 +5,17 @@ interface CurrentSongProps {
   title: string;
   artists: string[];
   large?: boolean;
+  compact?: boolean;
 }
 
-export const CurrentSong = ({ image, title, artists, large }: CurrentSongProps) => {
-  const size = large ? "w-14 h-14 sm:w-20 sm:h-20" : "w-12 h-12 sm:w-16 sm:h-16";
+export const CurrentSong = ({ image, title, artists, large, compact }: CurrentSongProps) => {
+  const size = compact
+    ? "w-10 h-10"
+    : large
+      ? "w-14 h-14 sm:w-20 sm:h-20"
+      : "w-12 h-12 sm:w-16 sm:h-16";
   return (
-    <div className="flex items-center gap-3 sm:gap-4 relative overflow-hidden min-w-0">
+    <div className="flex items-center gap-2 sm:gap-4 relative overflow-hidden min-w-0 flex-1">
       <div className={`${size} shrink-0 rounded-lg overflow-hidden shadow-lg ring-1 ring-pink-500/20`}>
         <TrackArtwork
           src={image}
@@ -21,7 +26,9 @@ export const CurrentSong = ({ image, title, artists, large }: CurrentSongProps) 
       </div>
 
       <div className="flex flex-col min-w-0">
-        <h3 className={`font-semibold truncate ${large ? "text-sm sm:text-base" : "text-sm"}`}>
+        <h3
+          className={`font-semibold truncate ${compact ? "text-xs" : large ? "text-sm sm:text-base" : "text-sm"}`}
+        >
           {title}
         </h3>
         <span className="text-xs kawaify-text-muted truncate">{artists?.join(", ")}</span>

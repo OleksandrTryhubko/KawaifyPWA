@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "../../hooks/useAuth";
+import { useLanguage } from "../../hooks/useLanguage";
 import { usePlayerStore } from "../../store/playerStore";
 import {
   getRecentlyPlayed,
@@ -14,6 +15,7 @@ export default function RecentlyPlayedSection() {
   const [loading, setLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { playTrack } = usePlayerStore();
+  const { t } = useLanguage();
 
   useEffect(() => {
     if (!user?.uid) {
@@ -32,7 +34,7 @@ export default function RecentlyPlayedSection() {
   return (
     <section className="mb-5">
       <h2 className="text-base sm:text-lg font-bold text-[var(--text)] mb-2">
-        Нещодавно прослухане
+        {t("home.recentlyPlayed")}
       </h2>
 
       {loading && (
@@ -48,9 +50,9 @@ export default function RecentlyPlayedSection() {
 
       {!loading && items.length === 0 && (
         <div className="kawaify-card px-4 py-3 text-center">
-          <p className="text-xs font-medium text-[var(--text)]">Ще нічого не слухали</p>
+          <p className="text-xs font-medium text-[var(--text)]">{t("home.recentlyEmpty")}</p>
           <p className="text-[10px] kawaify-text-muted mt-0.5">
-            Запусти трек — він зʼявиться тут.
+            {t("home.recentlyHint")}
           </p>
         </div>
       )}

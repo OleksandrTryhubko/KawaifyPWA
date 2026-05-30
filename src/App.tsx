@@ -32,7 +32,7 @@ function App() {
           <AsideMenu />
         </aside>
 
-        <main className="flex-1 kawaify-surface overflow-y-auto overflow-x-hidden w-full min-w-0 pb-40 sm:pb-36 lg:pb-32">
+        <main className="flex-1 kawaify-surface overflow-y-auto overflow-x-hidden w-full min-w-0 content-pad-bottom">
           <Routes>
             <Route index element={<MainSection />} />
             <Route path="/login" element={<Login />} />

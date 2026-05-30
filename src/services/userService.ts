@@ -9,6 +9,7 @@ import {
 import { db } from "../lib/firebase";
 import type { Playlist } from "../types/playlist";
 import { DEFAULT_USER_STATS } from "../utils/userStats";
+import { cleanPlaylistForFirestore } from "../utils/firestoreClean";
 
 export const createUser = async (email: string, uid: string) => {
   await setDoc(doc(db, "users", uid), {
@@ -88,8 +89,9 @@ export const updateUserPlaylists = async (
   userId: string,
   playlists: Playlist[]
 ): Promise<void> => {
+  const cleaned = playlists.map((p) => cleanPlaylistForFirestore(p));
   await updateDoc(doc(db, "users", userId), {
-    playlists,
+    playlists: cleaned,
     updatedAt: serverTimestamp(),
   });
 };
@@ -109,11 +111,14 @@ export const addUserPlaylist = async (
     );
     if (duplicate) return "duplicate_name";
 
+    const cleaned = cleanPlaylistForFirestore(playlist);
     await updateDoc(userRef, {
-      playlists: [...playlists, playlist],
+      playlists: [...playlists.map((p) => cleanPlaylistForFirestore(p)), cleaned],
+      updatedAt: serverTimestamp(),
     });
     return "created";
-  } catch {
+  } catch (error) {
+    console.error("[Kawaify playlist]", error);
     return "error";
   }
 };
@@ -143,13 +148,17 @@ export const addTrackToUserPlaylist = async (
 
     const updatedPlaylists = playlists.map((playlist) =>
       playlist.id === playlistId
-        ? { ...playlist, trackIds: [...playlist.trackIds, trackId] }
-        : playlist
+        ? cleanPlaylistForFirestore({
+            ...playlist,
+            trackIds: [...playlist.trackIds, trackId],
+          })
+        : cleanPlaylistForFirestore(playlist)
     );
 
     await updateDoc(userRef, { playlists: updatedPlaylists });
     return "added";
-  } catch {
+  } catch (error) {
+    console.error("[Kawaify playlist]", error);
     return "error";
   }
 };

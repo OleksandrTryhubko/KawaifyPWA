@@ -2,20 +2,18 @@ import { usePlayerStore } from "../../store/playerStore";
 import { useAudioEngine } from "../../hooks/useAudioEngine";
 import { useListeningTracker } from "../../hooks/useListeningTracker";
 import { useRecordRecentlyPlayed } from "../../hooks/useRecordRecentlyPlayed";
+import { useLanguage } from "../../hooks/useLanguage";
 import { CurrentSong } from "../Player/Song";
 import PlayerControls from "../Player/PlayerControls";
 import ProgressBar from "../Player/ProgressBar";
 import VolumePanel from "../Player/VolumePanel";
-import AbRepeatControl from "../Player/AbRepeatControl";
 import QueuePanel from "../Player/QueuePanel";
 import EqualizerModal from "../../features/audio-tools/EqualizerModal";
-import FavoriteButton from "../Player/FavoriteButton";
-import AddToPlaylistButton from "../Player/AddToPlaylistButton";
 
 const Player = () => {
   useListeningTracker();
   useRecordRecentlyPlayed();
-
+  const { t } = useLanguage();
   const { audioRef } = useAudioEngine();
 
   const { currentTrack, togglePlayPause } = usePlayerStore((state) => ({
@@ -27,45 +25,56 @@ const Player = () => {
 
   return (
     <>
-      <div className="player-shell flex flex-col w-full max-w-[100vw] px-2 sm:px-4 py-2 gap-2">
-        {hasTrack && (
-          <div className="w-full px-1">
-            <ProgressBar audio={audioRef} />
-          </div>
-        )}
-
-        <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 lg:gap-4">
-          {/* Left: artwork + meta */}
-          <div className="flex items-center gap-3 min-w-0 lg:w-[28%] lg:max-w-[320px] shrink-0 order-1">
+      <div className="player-shell w-full max-w-[100vw] overflow-hidden">
+        {/* Mobile layout */}
+        <div className="lg:hidden flex flex-col gap-1.5 px-2 py-1.5">
+          <div className="flex items-center gap-2 min-w-0">
             {hasTrack ? (
-              <CurrentSong {...currentTrack!} large />
+              <CurrentSong {...currentTrack!} compact />
             ) : (
-              <div className="h-14 flex items-center text-xs kawaify-text-muted px-1">
-                Оберіть трек для відтворення
+              <div className="flex-1 h-10 flex items-center text-[11px] kawaify-text-muted px-1">
+                {t("player.noTrack")}
               </div>
             )}
+            <div className="shrink-0 w-[100px] sm:w-[120px]">
+              <VolumePanel compact />
+            </div>
           </div>
 
-          {/* Center: controls */}
-          <div className="flex flex-col items-center flex-1 gap-1.5 min-w-0 order-3 lg:order-2">
-            <div className="flex items-center gap-2 sm:gap-3">
-              <FavoriteButton />
+          {hasTrack && <ProgressBar audio={audioRef} />}
+
+          <PlayerControls
+            onTogglePlay={togglePlayPause}
+            disabled={!hasTrack}
+            compact
+          />
+        </div>
+
+        {/* Desktop layout */}
+        <div className="hidden lg:flex flex-col gap-2 px-4 py-2">
+          {hasTrack && <ProgressBar audio={audioRef} />}
+
+          <div className="player-desktop-grid">
+            <div className="player-left min-w-0">
+              {hasTrack ? (
+                <CurrentSong {...currentTrack!} large />
+              ) : (
+                <div className="h-16 flex items-center text-xs kawaify-text-muted">
+                  {t("player.noTrack")}
+                </div>
+              )}
+            </div>
+
+            <div className="player-center">
               <PlayerControls
                 onTogglePlay={togglePlayPause}
                 disabled={!hasTrack}
               />
-              <AddToPlaylistButton />
             </div>
-            {hasTrack && (
-              <div className="hidden sm:flex">
-                <AbRepeatControl audio={audioRef} />
-              </div>
-            )}
-          </div>
 
-          {/* Right: volume */}
-          <div className="flex items-center justify-end lg:w-[22%] order-2 lg:order-3 shrink-0">
-            <VolumePanel />
+            <div className="player-right flex items-center justify-end min-w-0">
+              <VolumePanel />
+            </div>
           </div>
         </div>
       </div>

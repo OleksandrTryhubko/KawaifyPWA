@@ -16,13 +16,15 @@ interface LocalTrackCardProps {
 }
 
 export function toPlayableLocalTrack(item: LocalTrackMetadataDoc): Track {
+  const url = item.downloadUrl?.trim() || "";
   return {
     id: item.id,
     title: item.title,
     artists: [item.artist || "Local file"],
     duration: item.duration || "0:00",
     image: item.coverUrl || "",
-    streamUrl: item.downloadUrl,
+    streamUrl: url,
+    downloadUrl: url,
     source: "local",
     storagePath: item.storagePath,
     fileName: item.fileName,

@@ -8,6 +8,9 @@ export const firestorePaths = {
   userLocalTracks: (userId: string) => `users/${userId}/localTracks`,
   userLocalTrack: (userId: string, trackId: string) =>
     `users/${userId}/localTracks/${trackId}`,
+  assistantMessages: (userId: string) => `users/${userId}/assistantMessages`,
+  assistantMessage: (userId: string, messageId: string) =>
+    `users/${userId}/assistantMessages/${messageId}`,
   /** Legacy global songs cache (Audius metadata) */
   song: (trackId: string) => `songs/${trackId}`,
   /** Legacy top-level playlists collection */

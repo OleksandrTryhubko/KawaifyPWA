@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { doc, onSnapshot } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../hooks/useAuth";
+import { useLanguage } from "../hooks/useLanguage";
 import type { Playlist } from "../types/playlist";
 import TrackArtwork from "./common/TrackArtwork";
 
@@ -12,6 +13,7 @@ interface YourLibraryListProps {
 
 const YourLibraryList = ({ onNavigate }: YourLibraryListProps) => {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [favorites, setFavorites] = useState<string[]>([]);
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
 
@@ -40,7 +42,7 @@ const YourLibraryList = ({ onNavigate }: YourLibraryListProps) => {
           <div className="w-8 h-8 shrink-0 rounded bg-gradient-to-br from-pink-500/30 to-purple-500/20 flex items-center justify-center text-sm">
             ♪
           </div>
-          <span className="truncate">My Music</span>
+          <span className="truncate">{t("nav.myMusic")}</span>
         </Link>
       </li>
 
@@ -52,7 +54,7 @@ const YourLibraryList = ({ onNavigate }: YourLibraryListProps) => {
               alt="Favorites"
               className="w-8 h-8 object-cover rounded shrink-0"
             />
-            <span className="truncate">♥ Favorites</span>
+            <span className="truncate">♥ {t("nav.favorites")}</span>
           </Link>
         </li>
       )}

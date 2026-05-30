@@ -16,6 +16,8 @@ import type {
 } from "../types/player";
 import { createFlatBands } from "../types/player";
 import { presetToBands, EQUALIZER_PRESETS } from "../features/audio-tools/equalizerPresets";
+import { normalizeTrackForPlayback } from "../utils/trackAudioUrl";
+import { cleanTrackForFirestore } from "../utils/firestoreClean";
 import { db } from "../lib/firebase";
 import { doc, setDoc, getDoc } from "firebase/firestore";
 
@@ -76,13 +78,15 @@ interface UsePlayerStoreState {
 }
 
 const saveTrackIfNeeded = async (track: Track) => {
+  if (track.source === "local") return;
   const ref = doc(db, "songs", track.id);
   const snap = await getDoc(ref);
   if (!snap.exists()) {
+    const payload = cleanTrackForFirestore(track);
     try {
-      await setDoc(ref, track);
+      await setDoc(ref, payload);
     } catch (e) {
-      console.error(`Failed to save track ${track.title}:`, e);
+      console.error(`Failed to save track ${track.title}:`, e, payload);
     }
   }
 };
@@ -163,41 +167,44 @@ export const usePlayerStore = create<UsePlayerStoreState>()(
       setEqualizerOpen: (open) => set({ equalizerOpen: open }),
 
       setCurrentTrack: async (track) => {
-        set({ currentTrack: track });
-        await saveTrackIfNeeded(track);
+        const normalized = normalizeTrackForPlayback(track);
+        set({ currentTrack: normalized });
+        await saveTrackIfNeeded(normalized);
       },
 
       playTrack: async (track, options) => {
+        const normalized = normalizeTrackForPlayback(track);
         const { queue, appendToQueue } = options ?? {};
         let newQueue = queue ?? get().queue;
         let index = options?.index ?? -1;
 
         if (queue) {
-          newQueue = queue;
-          index = index >= 0 ? index : queue.findIndex((t) => t.id === track.id);
+          newQueue = queue.map(normalizeTrackForPlayback);
+          index = index >= 0 ? index : newQueue.findIndex((t) => t.id === normalized.id);
         } else if (appendToQueue) {
-          newQueue = [...get().queue, track];
+          newQueue = [...get().queue, normalized];
           index = newQueue.length - 1;
         } else if (newQueue.length === 0) {
-          newQueue = [track];
+          newQueue = [normalized];
           index = 0;
         } else {
-          const existing = newQueue.findIndex((t) => t.id === track.id);
+          const existing = newQueue.findIndex((t) => t.id === normalized.id);
           if (existing >= 0) {
             index = existing;
+            newQueue = newQueue.map((t, i) => (i === existing ? normalized : t));
           } else {
-            newQueue = [...newQueue, track];
+            newQueue = [...newQueue, normalized];
             index = newQueue.length - 1;
           }
         }
 
         set({
-          currentTrack: track,
+          currentTrack: normalized,
           queue: newQueue,
           queueIndex: index >= 0 ? index : 0,
           isPlaying: true,
         });
-        await saveTrackIfNeeded(track);
+        await saveTrackIfNeeded(normalized);
       },
 
       playNext: () => {
@@ -352,9 +359,11 @@ export function playTracksFromList(
   startTrack: Track,
   shuffle = false
 ): void {
-  const list = shuffle ? shuffleArray(tracks) : tracks;
-  const index = list.findIndex((t) => t.id === startTrack.id);
-  void usePlayerStore.getState().playTrack(startTrack, {
+  const normalized = tracks.map(normalizeTrackForPlayback);
+  const start = normalizeTrackForPlayback(startTrack);
+  const list = shuffle ? shuffleArray(normalized) : normalized;
+  const index = list.findIndex((t) => t.id === start.id);
+  void usePlayerStore.getState().playTrack(start, {
     queue: list,
     index: index >= 0 ? index : 0,
   });

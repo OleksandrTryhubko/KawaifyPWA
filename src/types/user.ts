@@ -5,6 +5,11 @@ export interface UserStats {
   tracksPlayed: number;
 }
 
+export interface AssistantStats {
+  totalMessages: number;
+  lastUsedAt: Date | null;
+}
+
 export interface UserProfile {
   uid: string;
   email: string;
@@ -13,4 +18,5 @@ export interface UserProfile {
   favorites: string[];
   playlists: Playlist[];
   stats: UserStats;
+  assistantStats?: AssistantStats;
 }

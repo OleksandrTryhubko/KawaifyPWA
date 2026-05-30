@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { X, Trash2, GripVertical } from "lucide-react";
 import { usePlayerStore } from "../../store/playerStore";
+import { useLanguage } from "../../hooks/useLanguage";
 import TrackArtwork from "../common/TrackArtwork";
 import clsx from "clsx";
 
 export default function QueuePanel() {
+  const { t } = useLanguage();
   const {
     queuePanelOpen,
     setQueuePanelOpen,
@@ -42,7 +44,7 @@ export default function QueuePanel() {
         aria-label="Playback queue"
       >
         <header className="flex items-center justify-between p-4 border-b border-[var(--border)]">
-          <h2 className="text-lg font-bold text-[var(--text)]">Черга</h2>
+          <h2 className="text-lg font-bold text-[var(--text)]">{t("queue.title")}</h2>
           <div className="flex gap-2">
             {queue.length > 0 && (
               <button
@@ -50,7 +52,7 @@ export default function QueuePanel() {
                 onClick={clearQueue}
                 className="text-xs text-[var(--text-muted)] hover:text-red-400 transition px-2 py-1"
               >
-                Очистити
+                {t("queue.clear")}
               </button>
             )}
             <button
@@ -66,7 +68,7 @@ export default function QueuePanel() {
 
         <div className="flex-1 overflow-y-auto p-3 space-y-1">
           {queue.length === 0 && (
-            <p className="text-sm kawaify-text-muted text-center py-8">Черга порожня</p>
+            <p className="text-sm kawaify-text-muted text-center py-8">{t("queue.empty")}</p>
           )}
 
           {queue.map((track, index) => {

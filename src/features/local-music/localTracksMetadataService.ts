@@ -15,6 +15,7 @@ import {
   uploadBytes,
 } from "firebase/storage";
 import { db, storage } from "../../lib/firebase";
+import { cleanLocalTrackForFirestore } from "../../utils/firestoreClean";
 import {
   MAX_LOCAL_COVER_SIZE_BYTES,
   MAX_LOCAL_TRACK_FILE_SIZE_BYTES,
@@ -86,11 +87,12 @@ export async function saveLocalTrackMetadata(
   userId: string,
   track: LocalTrackMetadataDoc
 ): Promise<void> {
-  await setDoc(localTrackDocRef(userId, track.id), {
+  const payload = cleanLocalTrackForFirestore({
     ...track,
-    updatedAt: serverTimestamp(),
     createdAt: track.createdAt ?? serverTimestamp(),
+    updatedAt: serverTimestamp(),
   });
+  await setDoc(localTrackDocRef(userId, track.id), payload);
 }
 
 export async function getUserLocalTracks(

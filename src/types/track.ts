@@ -8,6 +8,9 @@ export interface Track {
   duration: string;
   image: string;
   streamUrl: string;
+  /** Firebase Storage URL for local tracks */
+  downloadUrl?: string;
+  url?: string;
   source: TrackSource | string;
   storagePath?: string;
   objectUrl?: string;

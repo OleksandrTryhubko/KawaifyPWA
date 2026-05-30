@@ -1,7 +1,9 @@
 import { X } from "lucide-react";
 import { usePlayerStore } from "../../store/playerStore";
+import { useLanguage } from "../../hooks/useLanguage";
 import { EQUALIZER_PRESETS } from "./equalizerPresets";
 import EqGraph from "./EqGraph";
+import AdvancedPlaybackSection from "../../components/Player/AdvancedPlaybackSection";
 import { Slider } from "../../components/Slider";
 import clsx from "clsx";
 
@@ -21,6 +23,7 @@ export default function EqualizerModal() {
     setEqualizerMasterGain,
     applyEqualizerPreset,
   } = usePlayerStore();
+  const { t } = useLanguage();
 
   if (!equalizerOpen) return null;
 
@@ -32,13 +35,13 @@ export default function EqualizerModal() {
         aria-hidden
       />
       <div
-        className="fixed inset-x-2 bottom-2 sm:inset-auto sm:left-1/2 sm:top-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 z-[70] w-auto sm:w-[min(640px,92vw)] max-h-[90vh] overflow-hidden kawaify-card border border-[var(--border)] shadow-2xl flex flex-col animate-scale-in"
+        className="fixed inset-x-2 z-[70] w-auto sm:w-[min(640px,92vw)] max-h-[min(85vh,520px)] overflow-hidden kawaify-card border border-[var(--border)] shadow-2xl flex flex-col animate-scale-in left-1/2 -translate-x-1/2 bottom-[calc(var(--player-h-mobile)+0.5rem)] sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2"
         role="dialog"
         aria-label="Equalizer"
       >
         <header className="flex items-center justify-between px-4 py-3 border-b border-[var(--border)] shrink-0">
           <h2 className="text-lg font-bold bg-gradient-to-r from-pink-400 to-purple-400 bg-clip-text text-transparent">
-            Еквалайзер
+            {t("eq.title")}
           </h2>
           <button
             type="button"
@@ -114,9 +117,11 @@ export default function EqualizerModal() {
           ))}
         </div>
 
+        <AdvancedPlaybackSection />
+
         <footer className="px-4 py-3 border-t border-[var(--border)] shrink-0">
           <div className="flex items-center gap-3">
-            <span className="text-xs text-[var(--text-muted)] shrink-0 w-20">Master Gain</span>
+            <span className="text-xs text-[var(--text-muted)] shrink-0 w-20">{t("eq.masterGain")}</span>
             <Slider
               value={[equalizerMasterGain * 100]}
               min={0}

@@ -57,6 +57,10 @@ export class AudioEffectsService {
     }
   }
 
+  getState(): AudioContextState | "disconnected" {
+    return this.context?.state ?? "disconnected";
+  }
+
   setBandGain(index: number, gainDb: number): void {
     const filter = this.filters[index];
     if (!filter) return;

@@ -16,7 +16,11 @@ const MutedIcon = () => (
   </svg>
 );
 
-export default function VolumePanel() {
+interface VolumePanelProps {
+  compact?: boolean;
+}
+
+export default function VolumePanel({ compact }: VolumePanelProps) {
   const volume = usePlayerStore((s) => s.volume);
   const setVolume = usePlayerStore((s) => s.setVolume);
   const previousVolumeRef = useRef(volume);
@@ -31,6 +35,31 @@ export default function VolumePanel() {
       setVolume(0);
     }
   };
+
+  if (compact) {
+    return (
+      <div className="flex items-center gap-1.5 w-full">
+        <button
+          type="button"
+          className="text-[var(--text-muted)] hover:text-[var(--text)] transition shrink-0 p-1"
+          onClick={toggleMute}
+          aria-label={isMuted ? "Unmute" : "Mute"}
+        >
+          {isMuted ? <MutedIcon /> : <VolumeIcon />}
+        </button>
+        <Slider
+          max={100}
+          min={0}
+          value={[volume * 100]}
+          className="flex-1 min-w-0"
+          onValueChange={([v]) => setVolume(v / 100)}
+        />
+        <span className="text-[10px] tabular-nums text-[var(--text-muted)] w-7 shrink-0 text-right">
+          {percent}%
+        </span>
+      </div>
+    );
+  }
 
   return (
     <div className="flex items-center gap-2 min-w-[120px] max-w-[180px]">
